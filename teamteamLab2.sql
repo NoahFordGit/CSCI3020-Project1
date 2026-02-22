@@ -76,3 +76,209 @@ CREATE TABLE Role (
     roleTitle TEXT NOT NULL UNIQUE,
     permissionLevel INTEGER NOT NULL
 );
+
+
+
+
+
+
+-- SECTION TWO - OS
+
+DROP TABLE IF EXISTS Customer;
+CREATE TABLE Customer (
+    customerId INTEGER PRIMARY KEY,
+    creationDate DATETIME NOT NULL
+);
+
+DROP TABLE IF EXISTS CustomerName;
+CREATE TABLE CustomerName (
+    customerId INTEGER PRIMARY KEY,
+    firstName TEXT PRIMARY KEY,
+    lastName TEXT PRIMARY KEY,
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId)
+
+);
+
+
+DROP TABLE IF EXISTS CustomerPhone;
+CREATE TABLE CustomerPhone(
+    customerId INTEGER PRIMARY KEY,
+    phoneNumber INTEGER PRIMARY KEY,
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId)
+);
+
+
+DROP TABLE IF EXISTS CustomerEmail;
+CREATE TABLE CustomerEmail (
+    customerId INTEGER PRIMARY KEY,
+    emailAddress TEXT PRIMARY KEY,
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId)
+);
+
+
+DROP TABLE IF EXISTS CustomerAddress;
+CREATE TABLE CustomerAddress (
+    customerId INTEGER PRIMARY KEY,
+    zipCode INTEGER PRIMARY KEY,
+    addressLine1 TEXT PRIMARY KEY,
+    addressLine2 TEXT PRIMARY KEY,
+    city TEXT PRIMARY KEY,
+    state TEXT PRIMARY KEY,
+    country TEXT PRIMARY KEY,
+    isPreferred INTEGER NOT NULL DEFAULT 1 CHECK (isPreferred IN (0, 1)),
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId)
+);
+
+
+DROP TABLE IF EXISTS Membership;
+CREATE TABLE Membership (
+    membershipId INTEGER PRIMARY KEY,
+    membershipName TEXT NOT NULL
+);
+
+
+DROP TABLE IF EXISTS CustomerMembership;
+CREATE TABLE CustomerMembership (
+    membershipId INTEGER PRIMAR0Y KEY,
+    customerId INTEGER PRIMARY KEY,
+    isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)),
+    FOREIGN KEY(membershipId)
+        REFERENCES Membership(membershipId),
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId)
+);
+
+
+DROP TABLE IF EXISTS RetailProduct;
+CREATE TABLE RetailProduct (
+    productSKU INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    brand TEXT NOT NULL,
+    category TEXT NOT NULL,
+    standardPrice NUMERIC NOT NULL CHECK(standardPrice > 0),
+    taxStatus TEXT NOT NULL, -- Add a check here when status options are known
+    activeStatus TEXT NOT NULL CHECK(activeStatus IN ('Active', 'Inactive')),
+    baseProductSKU INTEGER,
+    FOREIGN KEY(baseProductSKU)
+        REFERENCES Variant(baseProductSKU)
+);
+
+
+DROP TABLE IF EXISTS ProductStore;
+CREATE TABLE ProductStore (
+    productSKU INTEGER PRIMARY KEY,
+    storefrontId INTEGER PRIMARY KEY,
+    FOREIGN KEY(productSKU)
+        REFERENCES RetailProduct(productSKU),
+    FOREIGN KEY(storefrontId)
+        REFERENCES Storefront(storefrontId)
+);
+
+
+DROP TABLE IF EXISTS Variant;
+CREATE TABLE Variant (
+    productSKU INTEGER PRIMARY KEY,
+    baseProductSKU INTEGER PRIMARY KEY,
+    size TEXT,
+    color TEXT,
+    FOREIGN KEY(productSKU)
+         REFERENCES RetailProduct(productSKU)
+);
+
+
+DROP TABLE IF EXISTS Vendor;
+CREATE TABLE Vendor (
+    vendorID INTEGER PRIMARY KEY,
+    vendorName TEXT NOT NULL
+);
+
+DROP TABLE IF EXISTS ProductVendor;
+CREATE TABLE ProductVendor (
+    vendorID INTEGER PRIMARY KEY,
+    productSKU INTEGER PRIMARY KEY,
+    details TEXT,
+    FOREIGN KEY(vendorID)
+        REFERENCES Vendor(vendorID),
+    FOREIGN KEY(productSKU)
+        REFERENCES RetailProduct(productSKU)
+);
+
+
+DROP TABLE IF EXISTS RetailSale;
+CREATE TABLE RetailSale (
+    saleId INTEGER PRIMARY KEY,
+    saleDate DATETIME NOT NULL,
+    taxAmount NUMERIC NOT NULL CHECK(taxAmount > 0), -- Money values cannot be zero here
+    subtotalAmount NUMERIC NOT NULL CHECK(subtotalAmount > 0),
+    customerId INTEGER NOT NULL,
+    storefrontId INTEGER NOT NULL,
+    employeeId INTEGER NOT NULL,
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId),
+    FOREIGN KEY(storefrontId)
+        REFERENCES Storefront(storefrontId),
+    FOREIGN KEY(employeeId)
+        REFERENCES Employee(employeeId)
+);
+
+
+DROP TABLE IF EXISTS ProductSale;
+CREATE TABLE ProductSale (
+    saleId INTEGER PRIMARY KEY,
+    discountId INTEGER PRIMARY KEY,
+    quantity INTEGER NOT NULL CHECK(quantity > 0),  -- Quantity cannot be zero here
+    FOREIGN KEY(saleId)
+        REFERENCES RetailSale(saleId),
+    FOREIGN KEY(discountId)
+         REFERENCES Discount(discountId)
+);
+
+
+DROP TABLE IF EXISTS ProductReturn;
+CREATE TABLE ProductReturn (
+    returnId INTEGER PRIMARY KEY,
+    returnDate DATETIME NOT NULL,
+    saleId INTEGER NOT NULL,
+    productSKU INTEGER NOT NULL,
+    FOREIGN KEY(saleId)
+        REFERENCES RetailSale(saleId),
+    FOREIGN KEY(productSKU)
+        REFERENCES RetailProduct(productSKU)
+);
+
+
+DROP TABLE IF EXISTS Discount;
+CREATE TABLE Discount (
+    discountId INTEGER PRIMARY KEY,
+    discountName TEXT NOT NULl,
+    discountType TEXT NOT NULL
+);
+
+
+DROP TABLE  IF EXISTS ProductDiscount;
+CREATE TABLE ProductDiscount (
+    discountId INTEGER PRIMARY KEY,
+    productSKU INTEGER PRIMARY KEY,
+    FOREIGN KEY(discountId)
+        REFERENCES Discount(discountId),
+    FOREIGN KEY(productSKU)
+        REFERENCES RetailProduct(productSKU)
+);
+
+
+DROP TABLE IF EXISTS SaleDiscount;
+CREATE TABLE SaleDiscount (
+    saleId INTEGER PRIMARY KEY,
+    discountId INTEGER PRIMARY KEY,
+    FOREIGN KEY(saleId)
+        REFERENCES RetailSale(saleId),
+    FOREIGN KEY(discountId)
+        REFERENCES Discount(discountId)
+);
+
+-- INDEXES
+
