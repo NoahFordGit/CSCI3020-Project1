@@ -280,5 +280,7 @@ CREATE TABLE SaleDiscount (
         REFERENCES Discount(discountId)
 );
 
+--Section 3 VR
+
 -- INDEXES
 
