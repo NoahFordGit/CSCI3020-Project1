@@ -282,5 +282,66 @@ CREATE TABLE SaleDiscount (
 
 --Section 3 VR
 
+DROP TABLE IF EXISTS RentalModel;
+CREATE TABLE RentalModel (
+    modelId INTEGER PRIMARY KEY,
+    rentalType TEXT NOT NULL
+);
+
+DROP TABLE IF EXISTS RentalUnit;
+CREATE TABLE RentalUnit (
+    unitId INTEGER PRIMARY KEY,
+    conditionStatus TEXT NOT NULL,
+    purchaseDate DATETIME NOT NULL,
+    modelId INTEGER NOT NULL,
+    storefrontId INTEGER NOT NULL,
+    FOREIGN KEY(modelId)
+        REFERENCES RentalModel(modelId),
+    FOREIGN KEY(storefrontId)
+        REFERENCES Storefront(storefrontId)
+);
+
+DROP TABLE IF EXISTS TransferHistory;
+CREATE TABLE TransferHistory (
+    transferId INTEGER PRIMARY KEY,
+    transferDate DATETIME NOT NULL,    --Changed TransferTime in ERD to TransferDate for clarity
+    unitId INTEGER NOT NULL,
+    fromStoreId INTEGER NOT NULL, --How to tackle this? Just reference storefront again? 
+    toStoreId INTEGER NOT NULL,
+    FOREIGN KEY(unitId)
+        REFERENCES RentalUnit(unitId),
+    FOREIGN KEY(fromStoreId)
+        REFERENCES Storefront(fromStoreId)
+);
+
+DROP TABLE IF EXISTS RentalContract;
+CREATE TABLE RentalContract (
+    contractId INTEGER PRIMARY KEY,
+    startDate DATETIME NOT NULL,
+    expectedReturnDate DATETIME NOT NULL,
+    depositAmount INTEGER NOT NULL,
+    lateFee INTEGER NOT NULL,
+    isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)), --Verify this
+    customerId INTEGER NOT NULL,
+    employeeId INTEGER NOT NULL,
+    storeId INTERGER NOT NUll,
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId)
+    FOREIGN KEY(employeeId)
+        REFERENCES Employee(employeeId)
+    FOREIGN KEY(storeId)
+        REFERENCES Storefront(storefrontId)
+);
+
+DROP TABLE IF EXISTS ContractExtension;
+CREATE TABLE ContractExtension (
+    extensionId INTEGER PRIMARY KEY,
+    oldReturnDate DATETIME NOT NULL,
+    newReturnDate DATETIME NOT NULL,
+    contractId INTEGER NOT NULL,
+    FOREIGN KEY(contractId)
+        REFERENCES RentalContract(contractId)
+);
+
 -- INDEXES
 
