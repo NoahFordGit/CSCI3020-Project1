@@ -33,12 +33,12 @@
 
 
     GROUP THREE - VANAY
-    Rental_Unit
-    Rental_Model
-    Transfer_History
-    Rental_Contract
-    Contract_Unit
-    Contract_Extension
+    Rental_Unit x
+    Rental_Model x
+    Transfer_History x
+    Rental_Contract x
+    Contract_Unit 
+    Contract_Extension x
     Ticket
     Part
     Unit_Part
