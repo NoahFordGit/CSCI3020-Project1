@@ -12,24 +12,24 @@
     Session_Enroll
 
     GROUP TWO - OLIVIA
-    Customer
-    Customer_Name
-    Customer_Phone
-    Customer_Email
-    Customer_Address
-    Membership
-    Customer_Membership
-    Retail_Product
-    Product_Store
-    Variant
-    Vendor
-    Product_Vendor
-    Retail_Sale
-    Product_Sale
-    Product_Return
-    Discount
-    Product_Discount
-    Sale_Discount
+    Customer            X
+    Customer_Name       X
+    Customer_Phone      X
+    Customer_Email      X
+    Customer_Address    X
+    Membership          X
+    Customer_Membership X
+    Retail_Product      X
+    Product_Store       X
+    Variant             X
+    Vendor              X
+    Product_Vendor      X
+    Retail_Sale         X
+    Product_Sale        X
+    Product_Return      X
+    Discount            X
+    Product_Discount    X
+    Sale_Discount       X
 
 
     GROUP THREE - VANAY
@@ -84,12 +84,14 @@ CREATE TABLE Role (
 
 -- SECTION TWO - OS
 
+-- Customer table
 DROP TABLE IF EXISTS Customer;
 CREATE TABLE Customer (
     customerId INTEGER PRIMARY KEY,
     creationDate DATETIME NOT NULL
 );
 
+-- CustomerName Table (weak)
 DROP TABLE IF EXISTS CustomerName;
 CREATE TABLE CustomerName (
     customerId INTEGER PRIMARY KEY,
@@ -100,7 +102,7 @@ CREATE TABLE CustomerName (
 
 );
 
-
+-- CustomerPhone table (weak)
 DROP TABLE IF EXISTS CustomerPhone;
 CREATE TABLE CustomerPhone(
     customerId INTEGER PRIMARY KEY,
@@ -109,7 +111,7 @@ CREATE TABLE CustomerPhone(
         REFERENCES Customer(customerId)
 );
 
-
+-- CustomerEmail table (weak)
 DROP TABLE IF EXISTS CustomerEmail;
 CREATE TABLE CustomerEmail (
     customerId INTEGER PRIMARY KEY,
@@ -118,7 +120,7 @@ CREATE TABLE CustomerEmail (
         REFERENCES Customer(customerId)
 );
 
-
+-- CustomerAddress table (weak)
 DROP TABLE IF EXISTS CustomerAddress;
 CREATE TABLE CustomerAddress (
     customerId INTEGER PRIMARY KEY,
@@ -133,14 +135,14 @@ CREATE TABLE CustomerAddress (
         REFERENCES Customer(customerId)
 );
 
-
+-- Membership table
 DROP TABLE IF EXISTS Membership;
 CREATE TABLE Membership (
     membershipId INTEGER PRIMARY KEY,
     membershipName TEXT NOT NULL
 );
 
-
+-- CustomerMembership table (associative)
 DROP TABLE IF EXISTS CustomerMembership;
 CREATE TABLE CustomerMembership (
     membershipId INTEGER PRIMAR0Y KEY,
@@ -152,7 +154,7 @@ CREATE TABLE CustomerMembership (
         REFERENCES Customer(customerId)
 );
 
-
+-- RetailProduct table
 DROP TABLE IF EXISTS RetailProduct;
 CREATE TABLE RetailProduct (
     productSKU INTEGER PRIMARY KEY,
@@ -167,7 +169,7 @@ CREATE TABLE RetailProduct (
         REFERENCES Variant(baseProductSKU)
 );
 
-
+-- ProductStore table (associative)
 DROP TABLE IF EXISTS ProductStore;
 CREATE TABLE ProductStore (
     productSKU INTEGER PRIMARY KEY,
@@ -178,7 +180,7 @@ CREATE TABLE ProductStore (
         REFERENCES Storefront(storefrontId)
 );
 
-
+-- Variant table (self-referencing to RetailProduct)
 DROP TABLE IF EXISTS Variant;
 CREATE TABLE Variant (
     productSKU INTEGER PRIMARY KEY,
@@ -189,13 +191,14 @@ CREATE TABLE Variant (
          REFERENCES RetailProduct(productSKU)
 );
 
-
+-- Vendor table
 DROP TABLE IF EXISTS Vendor;
 CREATE TABLE Vendor (
     vendorID INTEGER PRIMARY KEY,
     vendorName TEXT NOT NULL
 );
 
+-- ProductVendor table (associative)
 DROP TABLE IF EXISTS ProductVendor;
 CREATE TABLE ProductVendor (
     vendorID INTEGER PRIMARY KEY,
@@ -207,7 +210,7 @@ CREATE TABLE ProductVendor (
         REFERENCES RetailProduct(productSKU)
 );
 
-
+-- RetailSale table
 DROP TABLE IF EXISTS RetailSale;
 CREATE TABLE RetailSale (
     saleId INTEGER PRIMARY KEY,
@@ -225,21 +228,21 @@ CREATE TABLE RetailSale (
         REFERENCES Employee(employeeId)
 );
 
-
+-- ProductSale table (associative)
 DROP TABLE IF EXISTS ProductSale;
 CREATE TABLE ProductSale (
     saleId INTEGER PRIMARY KEY,
-    discountId INTEGER PRIMARY KEY,
+    productSKU INTEGER PRIMARY KEY,
     quantity INTEGER NOT NULL CHECK(quantity > 0),  -- Quantity cannot be zero here
-    FOREIGN KEY(saleId)
+    FOREIGN KEY(saleId)                             -- Will need a trigger here to update inventory
         REFERENCES RetailSale(saleId),
-    FOREIGN KEY(discountId)
-         REFERENCES Discount(discountId)
+    FOREIGN KEY(productSKU)
+         REFERENCES RetailProduct(productSKU)
 );
 
-
+-- ProductReturn table
 DROP TABLE IF EXISTS ProductReturn;
-CREATE TABLE ProductReturn (
+CREATE TABLE ProductReturn (        -- Will need a trigger somewhere here to "reverse" the sale made
     returnId INTEGER PRIMARY KEY,
     returnDate DATETIME NOT NULL,
     saleId INTEGER NOT NULL,
@@ -250,7 +253,7 @@ CREATE TABLE ProductReturn (
         REFERENCES RetailProduct(productSKU)
 );
 
-
+-- Discount table
 DROP TABLE IF EXISTS Discount;
 CREATE TABLE Discount (
     discountId INTEGER PRIMARY KEY,
@@ -258,7 +261,7 @@ CREATE TABLE Discount (
     discountType TEXT NOT NULL
 );
 
-
+-- ProductDiscount table (associative)
 DROP TABLE  IF EXISTS ProductDiscount;
 CREATE TABLE ProductDiscount (
     discountId INTEGER PRIMARY KEY,
@@ -269,7 +272,7 @@ CREATE TABLE ProductDiscount (
         REFERENCES RetailProduct(productSKU)
 );
 
-
+-- SaleDiscount table (associative)
 DROP TABLE IF EXISTS SaleDiscount;
 CREATE TABLE SaleDiscount (
     saleId INTEGER PRIMARY KEY,
@@ -345,3 +348,11 @@ CREATE TABLE ContractExtension (
 
 -- INDEXES
 
+CREATE INDEX idx_sale_customer
+    ON RetailSale(customerId);
+
+CREATE INDEX idx_sale_store
+    ON RetailSale(storefrontId);
+
+CREATE INDEX idx_sale_employee
+    ON RetailSale(employeeId);
