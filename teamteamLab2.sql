@@ -33,16 +33,16 @@
 
 
     GROUP THREE - VANAY
-    Rental_Unit x
-    Rental_Model x
-    Transfer_History x
-    Rental_Contract x
-    Contract_Unit 
-    Contract_Extension x
-    Ticket
-    Part
-    Unit_Part
-    Ticket_Part
+    Rental_Unit         X
+    Rental_Model        X
+    Transfer_History    X
+    Rental_Contract     X
+    Contract_Unit       X
+    Contract_Extension  X
+    Ticket              X
+    Part                X
+    Unit_Part           X
+    Ticket_Part         X
  */
 PRAGMA  foreign_keys = ON;
 
@@ -382,6 +382,7 @@ CREATE TABLE SaleDiscount (
 
 
 --Section 3 VR
+--TASK: Create Indexes and label tables
 
 DROP TABLE IF EXISTS RentalModel;
 CREATE TABLE RentalModel (
@@ -427,9 +428,9 @@ CREATE TABLE RentalContract (
     employeeId INTEGER NOT NULL,
     storeId INTERGER NOT NUll,
     FOREIGN KEY(customerId)
-        REFERENCES Customer(customerId)
+        REFERENCES Customer(customerId),
     FOREIGN KEY(employeeId)
-        REFERENCES Employee(employeeId)
+        REFERENCES Employee(employeeId),
     FOREIGN KEY(storeId)
         REFERENCES Storefront(storefrontId)
 );
@@ -443,4 +444,70 @@ CREATE TABLE ContractExtension (
     FOREIGN KEY(contractId)
         REFERENCES RentalContract(contractId)
 );
+
+DROP TABLE IF EXISTS ContractUnit;
+CREATE TABLE ContractUnit (
+    contractId INTEGER PRIMARY KEY,
+    unitId INTEGER PRIMARY KEY,
+    FOREIGN KEY(contractId)
+        REFERENCES RentalContract(contractId),
+    FOREIGN KEY(unitId)
+        REFERENCES RentalUnit(unitId)
+);
+
+DROP TABLE IF EXISTS Ticket;
+CREATE TABLE Ticket (
+    ticketId INTEGER PRIMARY KEY,
+    priority TEXT NOT NULL,
+    status TEXT NOT NULL,
+    labor TEXT NOT NULL,
+    billAmount INTEGER NOT NULL,
+    unitId INTEGER NOT NULL,
+    FOREIGN KEY(unitId)
+        REFERENCES RentalUnit(unitId)
+);
+
+ROP TABLE IF EXISTS TicketPart;
+CREATE TABLE TicketPart (
+    partId INTEGER PRIMARY KEY,
+    ticketId INTEGER PRIMARY KEY,
+    quantity INTEGER NOT NULL,
+    FOREIGN KEY(partId)
+        REFERENCES Part(partId),
+    FOREIGN KEY(ticketId)
+        REFERENCES Ticket(ticketId)
+);
+
+DROP TABLE IF EXISTS Part;
+CREATE TABLE Part (
+    partId INTEGER PRIMARY KEY,
+    partName TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    unitId INTEGER NOT NULL,
+    FOREIGN KEY(unitId)
+        REFERENCES RentalUnit(unitId)
+);
+
+DROP TABLE IF EXISTS UnitPart;
+CREATE TABLE UnitPart (
+    partId INTEGER PRIMARY KEY,
+    unitId INTEGER PRIMARY KEY,
+    FOREIGN KEY(partId)
+        REFERENCES Part(partId),
+    FOREIGN KEY(unitId)
+        REFERENCES RentalUnit(unitId)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
