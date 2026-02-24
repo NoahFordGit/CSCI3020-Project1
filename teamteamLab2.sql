@@ -91,6 +91,7 @@ CREATE TABLE Customer (
     creationDate DATETIME NOT NULL
 );
 
+
 -- CustomerName Table (weak)
 DROP TABLE IF EXISTS CustomerName;
 CREATE TABLE CustomerName (
@@ -99,8 +100,11 @@ CREATE TABLE CustomerName (
     lastName TEXT PRIMARY KEY,
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
-
 );
+-- Indexes for CustomerName
+    CREATE INDEX idx_customer_name
+        ON CustomerName(customerId);
+
 
 -- CustomerPhone table (weak)
 DROP TABLE IF EXISTS CustomerPhone;
@@ -110,6 +114,10 @@ CREATE TABLE CustomerPhone(
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
+-- Indexes for CustomerPhone
+    CREATE INDEX idx_customer_phone
+        ON CustomerPhone(customerId);
+
 
 -- CustomerEmail table (weak)
 DROP TABLE IF EXISTS CustomerEmail;
@@ -119,6 +127,10 @@ CREATE TABLE CustomerEmail (
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
+-- Indexes for CustomerEmail
+    CREATE INDEX idx_customer_email
+        ON CustomerEmail(customerId);
+
 
 -- CustomerAddress table (weak)
 DROP TABLE IF EXISTS CustomerAddress;
@@ -134,6 +146,10 @@ CREATE TABLE CustomerAddress (
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
+-- Indexes for CustomerAddress
+    CREATE INDEX idx_customer_address
+        ON CustomerAddress(customerId);
+
 
 -- Membership table
 DROP TABLE IF EXISTS Membership;
@@ -141,6 +157,7 @@ CREATE TABLE Membership (
     membershipId INTEGER PRIMARY KEY,
     membershipName TEXT NOT NULL
 );
+
 
 -- CustomerMembership table (associative)
 DROP TABLE IF EXISTS CustomerMembership;
@@ -153,6 +170,13 @@ CREATE TABLE CustomerMembership (
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
+-- Indexes for CustomerMembership
+    CREATE INDEX idx_customer_membership
+        ON CustomerMembership(customerId);
+
+    CREATE INDEX idx_membership_customer
+        ON CustomerMembership(membershipId);
+
 
 -- RetailProduct table
 DROP TABLE IF EXISTS RetailProduct;
@@ -168,6 +192,10 @@ CREATE TABLE RetailProduct (
     FOREIGN KEY(baseProductSKU)
         REFERENCES Variant(baseProductSKU)
 );
+-- Indexes for RetailProduct
+    CREATE INDEX idx_product_variant
+        ON RetailProduct(baseProductSKU);
+
 
 -- ProductStore table (associative)
 DROP TABLE IF EXISTS ProductStore;
@@ -179,6 +207,13 @@ CREATE TABLE ProductStore (
     FOREIGN KEY(storefrontId)
         REFERENCES Storefront(storefrontId)
 );
+-- Indexes for ProductStore
+    CREATE INDEX idx_product_store
+        ON ProductStore(productSKU);
+
+    CREATE INDEX idx_store_product
+        ON ProductStore(storefrontId);
+
 
 -- Variant table (self-referencing to RetailProduct)
 DROP TABLE IF EXISTS Variant;
@@ -190,6 +225,10 @@ CREATE TABLE Variant (
     FOREIGN KEY(productSKU)
          REFERENCES RetailProduct(productSKU)
 );
+-- Indexes for Variant
+    CREATE INDEX idx_variant_product
+        ON Variant(productSKU);
+
 
 -- Vendor table
 DROP TABLE IF EXISTS Vendor;
@@ -197,6 +236,7 @@ CREATE TABLE Vendor (
     vendorID INTEGER PRIMARY KEY,
     vendorName TEXT NOT NULL
 );
+
 
 -- ProductVendor table (associative)
 DROP TABLE IF EXISTS ProductVendor;
@@ -209,6 +249,13 @@ CREATE TABLE ProductVendor (
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU)
 );
+-- Indexes for ProductVendor
+     CREATE INDEX idx_vendor_product
+        ON ProductVendor(vendorID);
+
+    CREATE INDEX idx_product_vendor
+        ON ProductVendor(productSKU);
+
 
 -- RetailSale table
 DROP TABLE IF EXISTS RetailSale;
@@ -227,6 +274,16 @@ CREATE TABLE RetailSale (
     FOREIGN KEY(employeeId)
         REFERENCES Employee(employeeId)
 );
+-- Indexes for RetailSale
+    CREATE INDEX idx_sale_customer
+        ON RetailSale(customerId);
+
+    CREATE INDEX idx_sale_store
+        ON RetailSale(storefrontId);
+
+    CREATE INDEX idx_sale_employee
+        ON RetailSale(employeeId);
+
 
 -- ProductSale table (associative)
 DROP TABLE IF EXISTS ProductSale;
@@ -239,6 +296,13 @@ CREATE TABLE ProductSale (
     FOREIGN KEY(productSKU)
          REFERENCES RetailProduct(productSKU)
 );
+-- Indexes for ProductSale
+    CREATE INDEX idx_sale_product
+        ON ProductSale(saleId);
+
+    CREATE INDEX idx_product_sale
+        ON ProductSale(productSKU);
+
 
 -- ProductReturn table
 DROP TABLE IF EXISTS ProductReturn;
@@ -252,6 +316,13 @@ CREATE TABLE ProductReturn (        -- Will need a trigger somewhere here to "re
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU)
 );
+-- Indexes for ProductReturn
+    CREATE INDEX idx_return_sale
+        ON ProductReturn(saleId);
+
+    CREATE INDEX idx_return_product
+        ON ProductReturn(productSKU);
+
 
 -- Discount table
 DROP TABLE IF EXISTS Discount;
@@ -271,6 +342,13 @@ CREATE TABLE ProductDiscount (
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU)
 );
+-- Indexes for ProductDiscount
+    CREATE INDEX idx_discount_product
+        ON ProductDiscount(discountId);
+
+    CREATE INDEX idx_product_discount
+        ON ProductDiscount(productSKU);
+
 
 -- SaleDiscount table (associative)
 DROP TABLE IF EXISTS SaleDiscount;
@@ -282,6 +360,15 @@ CREATE TABLE SaleDiscount (
     FOREIGN KEY(discountId)
         REFERENCES Discount(discountId)
 );
+-- Indexes for SaleDiscount
+    CREATE INDEX idx_sale_discount
+        ON SaleDiscount(saleId);
+
+    CREATE INDEX idx_discount_sale
+        ON SaleDiscount(discountId);
+
+-- End Section 2 --
+
 
 --Section 3 VR
 
@@ -346,13 +433,3 @@ CREATE TABLE ContractExtension (
         REFERENCES RentalContract(contractId)
 );
 
--- INDEXES
-
-CREATE INDEX idx_sale_customer
-    ON RetailSale(customerId);
-
-CREATE INDEX idx_sale_store
-    ON RetailSale(storefrontId);
-
-CREATE INDEX idx_sale_employee
-    ON RetailSale(employeeId);
