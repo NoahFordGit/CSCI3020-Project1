@@ -95,9 +95,10 @@ CREATE TABLE Customer (
 -- CustomerName Table (weak)
 DROP TABLE IF EXISTS CustomerName;
 CREATE TABLE CustomerName (
-    customerId INTEGER PRIMARY KEY,
-    firstName TEXT PRIMARY KEY,
-    lastName TEXT PRIMARY KEY,
+    customerId INTEGER,
+    firstName TEXT,
+    lastName TEXT,
+    PRIMARY KEY(customerId,firstName, lastName),
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
@@ -109,8 +110,9 @@ CREATE TABLE CustomerName (
 -- CustomerPhone table (weak)
 DROP TABLE IF EXISTS CustomerPhone;
 CREATE TABLE CustomerPhone(
-    customerId INTEGER PRIMARY KEY,
-    phoneNumber INTEGER PRIMARY KEY,
+    customerId INTEGER,
+    phoneNumber INTEGER,
+    PRIMARY KEY(customerId, phoneNumber),
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
@@ -122,8 +124,9 @@ CREATE TABLE CustomerPhone(
 -- CustomerEmail table (weak)
 DROP TABLE IF EXISTS CustomerEmail;
 CREATE TABLE CustomerEmail (
-    customerId INTEGER PRIMARY KEY,
-    emailAddress TEXT PRIMARY KEY,
+    customerId INTEGER,
+    emailAddress TEXT,
+    PRIMARY KEY(customerId, emailAddress),
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
@@ -135,14 +138,15 @@ CREATE TABLE CustomerEmail (
 -- CustomerAddress table (weak)
 DROP TABLE IF EXISTS CustomerAddress;
 CREATE TABLE CustomerAddress (
-    customerId INTEGER PRIMARY KEY,
-    zipCode INTEGER PRIMARY KEY,
-    addressLine1 TEXT PRIMARY KEY,
-    addressLine2 TEXT PRIMARY KEY,
-    city TEXT PRIMARY KEY,
-    state TEXT PRIMARY KEY,
-    country TEXT PRIMARY KEY,
+    customerId INTEGER,
+    zipCode INTEGER,
+    addressLine1 TEXT,
+    addressLine2 TEXT,
+    city TEXT,
+    state TEXT,
+    country TEXT,
     isPreferred INTEGER NOT NULL DEFAULT 1 CHECK (isPreferred IN (0, 1)),
+    PRIMARY KEY(customerId, zipCode, addressLine1, addressLine2, city, state, country),
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
@@ -162,9 +166,10 @@ CREATE TABLE Membership (
 -- CustomerMembership table (associative)
 DROP TABLE IF EXISTS CustomerMembership;
 CREATE TABLE CustomerMembership (
-    membershipId INTEGER PRIMAR0Y KEY,
-    customerId INTEGER PRIMARY KEY,
+    membershipId INTEGER,
+    customerId INTEGER,
     isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)),
+    PRIMARY KEY(membershipId, customerId),
     FOREIGN KEY(membershipId)
         REFERENCES Membership(membershipId),
     FOREIGN KEY(customerId)
@@ -186,7 +191,7 @@ CREATE TABLE RetailProduct (
     brand TEXT NOT NULL,
     category TEXT NOT NULL,
     standardPrice NUMERIC NOT NULL CHECK(standardPrice > 0),
-    taxStatus TEXT NOT NULL, -- Add a check here when status options are known
+    taxStatus TEXT NOT NULL CHECK(taxStatus IN ('Exempt', 'Non-exempt')),
     activeStatus TEXT NOT NULL CHECK(activeStatus IN ('Active', 'Inactive')),
     baseProductSKU INTEGER,
     FOREIGN KEY(baseProductSKU)
@@ -200,8 +205,9 @@ CREATE TABLE RetailProduct (
 -- ProductStore table (associative)
 DROP TABLE IF EXISTS ProductStore;
 CREATE TABLE ProductStore (
-    productSKU INTEGER PRIMARY KEY,
-    storefrontId INTEGER PRIMARY KEY,
+    productSKU INTEGER,
+    storefrontId INTEGER,
+    PRIMARY KEY(productSKU, storefrontId),
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU),
     FOREIGN KEY(storefrontId)
@@ -218,10 +224,11 @@ CREATE TABLE ProductStore (
 -- Variant table (self-referencing to RetailProduct)
 DROP TABLE IF EXISTS Variant;
 CREATE TABLE Variant (
-    productSKU INTEGER PRIMARY KEY,
-    baseProductSKU INTEGER PRIMARY KEY,
+    productSKU INTEGER,
+    baseProductSKU INTEGER,
     size TEXT,
     color TEXT,
+    PRIMARY KEY(productSKU, baseProductSKU),
     FOREIGN KEY(productSKU)
          REFERENCES RetailProduct(productSKU)
 );
@@ -241,9 +248,10 @@ CREATE TABLE Vendor (
 -- ProductVendor table (associative)
 DROP TABLE IF EXISTS ProductVendor;
 CREATE TABLE ProductVendor (
-    vendorID INTEGER PRIMARY KEY,
-    productSKU INTEGER PRIMARY KEY,
+    vendorID INTEGER,
+    productSKU INTEGER,
     details TEXT,
+    PRIMARY KEY(vendorID, productSKU),
     FOREIGN KEY(vendorID)
         REFERENCES Vendor(vendorID),
     FOREIGN KEY(productSKU)
@@ -288,9 +296,10 @@ CREATE TABLE RetailSale (
 -- ProductSale table (associative)
 DROP TABLE IF EXISTS ProductSale;
 CREATE TABLE ProductSale (
-    saleId INTEGER PRIMARY KEY,
-    productSKU INTEGER PRIMARY KEY,
+    saleId INTEGER,
+    productSKU INTEGER,
     quantity INTEGER NOT NULL CHECK(quantity > 0),  -- Quantity cannot be zero here
+    PRIMARY KEY(saleId, productSKU),
     FOREIGN KEY(saleId)                             -- Will need a trigger here to update inventory
         REFERENCES RetailSale(saleId),
     FOREIGN KEY(productSKU)
@@ -335,8 +344,9 @@ CREATE TABLE Discount (
 -- ProductDiscount table (associative)
 DROP TABLE  IF EXISTS ProductDiscount;
 CREATE TABLE ProductDiscount (
-    discountId INTEGER PRIMARY KEY,
-    productSKU INTEGER PRIMARY KEY,
+    discountId INTEGER,
+    productSKU INTEGER,
+    PRIMARY KEY(discountId, productSKU),
     FOREIGN KEY(discountId)
         REFERENCES Discount(discountId),
     FOREIGN KEY(productSKU)
@@ -353,8 +363,9 @@ CREATE TABLE ProductDiscount (
 -- SaleDiscount table (associative)
 DROP TABLE IF EXISTS SaleDiscount;
 CREATE TABLE SaleDiscount (
-    saleId INTEGER PRIMARY KEY,
-    discountId INTEGER PRIMARY KEY,
+    saleId INTEGER,
+    discountId INTEGER,
+    PRIMARY KEY(saleId, discountId),
     FOREIGN KEY(saleId)
         REFERENCES RetailSale(saleId),
     FOREIGN KEY(discountId)
