@@ -447,8 +447,9 @@ CREATE TABLE ContractExtension (
 
 DROP TABLE IF EXISTS ContractUnit;
 CREATE TABLE ContractUnit (
-    contractId INTEGER PRIMARY KEY,
-    unitId INTEGER PRIMARY KEY,
+    contractId INTEGER,
+    unitId INTEGER,
+    PRIMARY KEY(contractId, unitId),
     FOREIGN KEY(contractId)
         REFERENCES RentalContract(contractId),
     FOREIGN KEY(unitId)
@@ -469,9 +470,10 @@ CREATE TABLE Ticket (
 
 DROP TABLE IF EXISTS TicketPart;
 CREATE TABLE TicketPart (
-    partId INTEGER PRIMARY KEY,
-    ticketId INTEGER PRIMARY KEY,
+    partId INTEGER,
+    ticketId INTEGER,
     quantity INTEGER NOT NULL,
+    PRIMARY KEY(partId, tricketId),
     FOREIGN KEY(partId)
         REFERENCES Part(partId),
     FOREIGN KEY(ticketId)
@@ -490,8 +492,9 @@ CREATE TABLE Part (
 
 DROP TABLE IF EXISTS UnitPart;
 CREATE TABLE UnitPart (
-    partId INTEGER PRIMARY KEY,
-    unitId INTEGER PRIMARY KEY,
+    partId INTEGER,
+    unitId INTEGER,
+    PRIMARY KEY(partId, unitId),
     FOREIGN KEY(partId)
         REFERENCES Part(partId),
     FOREIGN KEY(unitId)
