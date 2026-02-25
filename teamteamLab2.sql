@@ -98,9 +98,10 @@ CREATE TABLE CustomerName (
     customerId INTEGER,
     firstName TEXT,
     lastName TEXT,
-    PRIMARY KEY(customerId,firstName, lastName),
-    FOREIGN KEY(customerId)
-        REFERENCES Customer(customerId)
+      FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId),
+    PRIMARY KEY(customerId,firstName, lastName)
+
 );
 -- Indexes for CustomerName
     CREATE INDEX idx_customer_name
@@ -193,7 +194,7 @@ CREATE TABLE RetailProduct (
     standardPrice NUMERIC NOT NULL CHECK(standardPrice > 0),
     taxStatus TEXT NOT NULL CHECK(taxStatus IN ('Exempt', 'Non-exempt')),
     activeStatus TEXT NOT NULL CHECK(activeStatus IN ('Active', 'Inactive')),
-    baseProductSKU INTEGER,
+    baseProductSKU INTEGER,     -- This value is NULLABLE
     FOREIGN KEY(baseProductSKU)
         REFERENCES Variant(baseProductSKU)
 );
@@ -393,6 +394,7 @@ CREATE TABLE RentalModel (
 DROP TABLE IF EXISTS RentalUnit;
 CREATE TABLE RentalUnit (
     unitId INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,         -- Added by OS (oversight from the ERD/Lab 1)
     conditionStatus TEXT NOT NULL,
     purchaseDate DATETIME NOT NULL,
     modelId INTEGER NOT NULL,
@@ -504,13 +506,65 @@ CREATE TABLE UnitPart (
 
 
 
+-- Insert Statements (sample data)
+
+INSERT INTO RetailProduct(productSKU, name, brand, category, standardPrice, taxStatus, activeStatus, baseProductSKU)
+    VALUES(10000001, 'Toolbox', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active', NULL),
+            (10000002, 'Toolbox Red', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active', 10000001),
+            (10000003, 'Toolbox White', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active', 10000001);
 
 
+INSERT INTO Customer(customerId,creationDate)
+    VALUES(1001,'2025-03-01 14:30:00'),
+            (1002,'2025-09-01 14:30:00'),
+            (1003,'2025-10-01 14:30:00');
 
 
+INSERT INTO CustomerName(customerId, firstName, lastName)
+    VALUES(1001, 'Matthew', 'Desjardins'),
+            (1002, 'Dillion', 'Buchanan'),
+            (1003, 'Jacob', 'Gillenwater');
+
+INSERT INTO CustomerPhone(customerId, phoneNumber)
+    VALUES(1001, 4234396951),
+            (1002, 4234395599),
+            (1003, 4234396970);
+
+INSERT INTO RentalModel(modelId, rentalType)
+    VALUES(201, 'Hourly'),
+          (202, 'Daily'),
+          (203, 'Weekly');
+
+INSERT INTO Role(roleId, roleTitle, permissionLevel)
+    VALUES(1,'Cashier', 2),
+          (2, 'Lead Cashier', 4),
+          (3, 'Cashier manager', 6);
+
+INSERT INTO Vendor(vendorID, vendorName)
+    VALUES(900, 'Craftsman'),
+          (901, 'Dewalt');
 
 
+-- This insert is supposed to FAIL (passed for some reason, checking on it later)
+INSERT INTO Employee(employeeId, storeId, roleId, firstName, lastName, hireDate, hourlyRate, isActive)
+    VALUES(000123456, NULL, 3, 'Steve', 'Rogers', '2026-02-01 14:30:00', 12.00, 1 );
+
+-- This insert is supposed to FAIL
+INSERT INTO RentalUnit(unitId, name, conditionStatus, purchaseDate, modelId, storefrontId)
+    VALUES(401, 'Forklift','Good', '2025-03-21 14:30:00', 202, NULL);
+-- This insert is supposed to FAIL
+INSERT INTO Storefront(storefrontId, managerId, storeAddress, phoneNumber)
+    VALUES(301,NULL, '123 Main Street', 123456789);
 
 
-
-
+-- Delete Statements (please run these after testing insert statements or they will not work)
+DELETE FROM RetailProduct;
+DELETE FROM Customer;
+DELETE FROM CustomerName;
+DELETE FROM CustomerPhone;
+DELETE FROM RentalModel;
+DELETE FROM Role;
+DELETE FROM Vendor;
+DELETE FROM Employee;
+DELETE FROM RentalUnit;
+DELETE FROM Storefront;
