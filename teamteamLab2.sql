@@ -426,7 +426,7 @@ CREATE TABLE RentalContract (
     isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)), --Verify this
     customerId INTEGER NOT NULL,
     employeeId INTEGER NOT NULL,
-    storeId INTERGER NOT NUll,
+    storeId INTEGER NOT NUll,
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId),
     FOREIGN KEY(employeeId)
@@ -467,7 +467,7 @@ CREATE TABLE Ticket (
         REFERENCES RentalUnit(unitId)
 );
 
-ROP TABLE IF EXISTS TicketPart;
+DROP TABLE IF EXISTS TicketPart;
 CREATE TABLE TicketPart (
     partId INTEGER PRIMARY KEY,
     ticketId INTEGER PRIMARY KEY,
