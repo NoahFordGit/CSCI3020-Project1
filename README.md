@@ -27,7 +27,7 @@ This project is a physical SQLite implementation of a complex business database 
 
 - Noah Ford  
 - Olivia Smith  
-- Rowell V  
+- Vanay Rowell 
 
 ## Course Information
 
