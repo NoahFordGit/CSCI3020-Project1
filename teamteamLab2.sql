@@ -3,13 +3,13 @@
     Storefront          X
     Employee            X
     Role                X
-    Store_Shift
-    Training
-    Training_Course
-    Course_Session
-    Instructor
-    Session_Instructor
-    Session_Enroll
+    Store_Shift         X
+    Training            ?       -- Unknown table -OS
+    Training_Course     X
+    Course_Session      X
+    Instructor          X
+    Session_Instructor  X
+    Session_Enroll      X
 
     GROUP TWO - OLIVIA
     Customer            X
@@ -46,6 +46,7 @@
  */
 PRAGMA foreign_keys = ON;
 
+-- Storefront table
 DROP TABLE IF EXISTS Storefront;
 CREATE TABLE Storefront (
     storefrontId INTEGER PRIMARY KEY,
@@ -54,8 +55,11 @@ CREATE TABLE Storefront (
     phoneNumber UNIQUE NOT NULL,
     FOREIGN KEY (managerId) REFERENCES Employee(employeeId)
 );
-CREATE INDEX idx_storefront_employee ON Storefront(managerId);
+-- Index(es) for Storefront
+    CREATE INDEX idx_storefront_employee ON Storefront(managerId);
 
+
+-- Employee table
 DROP TABLE IF EXISTS Employee;
 CREATE TABLE Employee (
     employeeId INTEGER PRIMARY KEY,
@@ -69,11 +73,14 @@ CREATE TABLE Employee (
     FOREIGN KEY (storeId) REFERENCES Storefront(storefrontId),
     FOREIGN KEY (roleId) REFERENCES Role(roleId)
 );
-CREATE INDEX idx_employee_store ON Employee(storeId);
-CREATE INDEX idx_employee_role ON Employee(roleId);
-CREATE INDEX idx_employee_hiredate ON Employee(hireDate);
-CREATE INDEX idx_employee_hourlyrate ON Employee(hourlyRate);
+-- Index(es) for Employee
+    CREATE INDEX idx_employee_store ON Employee(storeId);
+    CREATE INDEX idx_employee_role ON Employee(roleId);
+    CREATE INDEX idx_employee_hiredate ON Employee(hireDate);
+    CREATE INDEX idx_employee_hourlyrate ON Employee(hourlyRate);
 
+
+-- Role table
 DROP TABLE IF EXISTS Role;
 CREATE TABLE Role (
     roleId INTEGER PRIMARY KEY,
@@ -81,6 +88,8 @@ CREATE TABLE Role (
     permissionLevel INTEGER NOT NULL
 );
 
+
+-- Storeshift table
 DROP TABLE IF EXISTS Storeshift;
 CREATE TABLE Storeshift (
     shiftId INTEGER PRIMARY KEY,
@@ -91,8 +100,58 @@ CREATE TABLE Storeshift (
     FOREIGN KEY (employeeId) REFERENCES Employee(employeeId),
     FOREIGN KEY (storeId) REFERENCES Storefront(storefrontId)
 );
-CREATE INDEX idx_storeshift_employee ON Storeshift(employeeId);
-CREATE INDEX idx_storeshift_store ON Storeshift(storeId);
+-- Index(es) for Storeshift
+    CREATE INDEX idx_storeshift_employee ON Storeshift(employeeId);
+    CREATE INDEX idx_storeshift_store ON Storeshift(storeId);
+
+
+-- TrainingCourse table
+CREATE TABLE TrainingCourse (
+    courseId INTEGER PRIMARY KEY,
+    courseName TEXT, NOT NULL,
+    description TEXT
+);
+
+
+-- CourseSession table
+CREATE TABLE CourseSession (
+    sessionId INTEGER PRIMARY KEY,
+    capacity INTEGER NOT NULL,
+    courseId INTEGER NOT NULL,
+    FOREIGN KEY(courseId)
+        REFERENCES TrainingCourse(courseId)
+);
+-- Index(es) for CourseSession
+    CREATE INDEX idx_coursesession_course ON CourseSession(courseId);
+
+
+-- Instructor table
+CREATE TABLE Instructor (
+    instructorId INTEGER PRIMARY KEY,
+    firstName TEXT NOT NULL,
+    lastName TEXT NOT NULL,
+    salary NUMERIC NOT NULL CHECK(salary > 0)
+);
+-- Index(es) for Instructor
+    CREATE INDEX idx_instructor_lastname ON Instructor(lastName);
+
+
+-- SessionInstructor table (associative)
+CREATE TABLE SessionInstructor (
+    sessionId INTEGER NOT NULL,
+    instructorId INTEGER NOT NULL,
+    PRIMARY KEY(sessionId, instructorId),
+    FOREIGN KEY(sessionId)
+        REFERENCES CourseSession(sessionId),
+    FOREIGN KEY(instructorId)
+        REFERENCES Instructor(instructorId)
+);
+-- Index(es) for SessionInstructor
+    CREATE INDEX idx_sessioninstructor_session ON SessionInstructor(sessionId);
+    CREATE INDEX idx_sessioninstructor_instructor ON SessionInstructor(instructorId);
+
+
+
 
 -- SECTION TWO - OS
 -- Customer table
@@ -101,6 +160,21 @@ CREATE TABLE Customer (
     customerId INTEGER PRIMARY KEY,
     creationDate DATETIME NOT NULL
 );
+
+-- Section One table that had to be moved here due to customer table placement
+CREATE TABLE SessionEnroll (
+    sessionId INTEGER NOT NULL,
+    customerId INTEGER NOT NULL,
+    PRIMARY KEY(sessionId, customerId),
+    FOREIGN KEY(sessionId)
+        REFERENCES CourseSession(sessionId),
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId)
+);
+-- Index(es) for SessionEnroll
+    CREATE INDEX idx_sessionenroll_session ON SessionEnroll(sessionId);
+    CREATE INDEX idx_sessionenroll_customer ON SessionEnroll(customerId);
+
 
 
 -- CustomerName Table (weak)
@@ -114,7 +188,7 @@ CREATE TABLE CustomerName (
     PRIMARY KEY(customerId,firstName, lastName)
 
 );
--- Indexes for CustomerName
+-- Index(es) for CustomerName
     CREATE INDEX idx_customername_customer ON CustomerName(customerId);
     CREATE INDEX idx_customername_lastname ON CustomerName(lastName);
 
@@ -128,7 +202,7 @@ CREATE TABLE CustomerPhone(
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
--- Indexes for CustomerPhone
+-- Index(es) for CustomerPhone
     CREATE INDEX idx_customerphone_customer ON CustomerPhone(customerId);
 
 
@@ -141,7 +215,7 @@ CREATE TABLE CustomerEmail (
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
--- Indexes for CustomerEmail
+-- Index(es) for CustomerEmail
     CREATE INDEX idx_customeremail_customer ON CustomerEmail(customerId);
     CREATE INDEX idx_customeremail_email ON CustomerEmail(emailAddress);
 
@@ -161,7 +235,7 @@ CREATE TABLE CustomerAddress (
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
--- Indexes for CustomerAddress
+-- Index(es) for CustomerAddress
     CREATE INDEX idx_customeraddress_customer ON CustomerAddress(customerId);
     CREATE INDEX idx_customeraddress_zipcode ON CustomerAddress(zipCode);
     CREATE INDEX idx_customeraddress_city ON CustomerAddress(city);
@@ -187,7 +261,7 @@ CREATE TABLE CustomerMembership (
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
 );
--- Indexes for CustomerMembership
+-- Index(es) for CustomerMembership
     CREATE INDEX idx_customermembership_customer ON CustomerMembership(customerId);
     CREATE INDEX idx_customermembership_membership ON CustomerMembership(membershipId);
 
@@ -206,7 +280,7 @@ CREATE TABLE RetailProduct (
     FOREIGN KEY(baseProductSKU)
         REFERENCES Variant(baseProductSKU)
 );
--- Indexes for RetailProduct
+-- Index(es) for RetailProduct
     CREATE INDEX idx_retailproduct_baseproduct ON RetailProduct(baseProductSKU);
     CREATE INDEX idx_retailproduct_brand ON RetailProduct(brand);
     CREATE INDEX idx_retailproduct_category ON RetailProduct(category);
@@ -222,7 +296,7 @@ CREATE TABLE ProductStore (
     FOREIGN KEY(storefrontId)
         REFERENCES Storefront(storefrontId)
 );
--- Indexes for ProductStore
+-- Index(es) for ProductStore
     CREATE INDEX idx_productstore_product ON ProductStore(productSKU);
     CREATE INDEX idx_productstore_store ON ProductStore(storefrontId);
 
@@ -238,7 +312,7 @@ CREATE TABLE Variant (
     FOREIGN KEY(productSKU)
          REFERENCES RetailProduct(productSKU)
 );
--- Indexes for Variant
+-- Index(es) for Variant
     CREATE INDEX idx_variant_product ON Variant(productSKU);
 
 
@@ -262,7 +336,7 @@ CREATE TABLE ProductVendor (
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU)
 );
--- Indexes for ProductVendor
+-- Index(es) for ProductVendor
     CREATE INDEX idx_retailsale_vendor ON ProductVendor(vendorID);
     CREATE INDEX idx_productvendor_product ON ProductVendor(productSKU);
 
@@ -284,7 +358,7 @@ CREATE TABLE RetailSale (
     FOREIGN KEY(employeeId)
         REFERENCES Employee(employeeId)
 );
--- Indexes for RetailSale
+-- Index(es) for RetailSale
     CREATE INDEX idx_retailsale_customer ON RetailSale(customerId);
     CREATE INDEX idx_retailsale_store ON RetailSale(storefrontId);
     CREATE INDEX idx_retailsale_employee ON RetailSale(employeeId);
@@ -303,7 +377,7 @@ CREATE TABLE ProductSale (
     FOREIGN KEY(productSKU)
          REFERENCES RetailProduct(productSKU)
 );
--- Indexes for ProductSale
+-- Index(es) for ProductSale
     CREATE INDEX idx_productsale_sale ON ProductSale(saleId);
     CREATE INDEX idx_productsale_product ON ProductSale(productSKU);
 
@@ -320,7 +394,7 @@ CREATE TABLE ProductReturn (        -- Will need a trigger somewhere here to "re
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU)
 );
--- Indexes for ProductReturn
+-- Index(es) for ProductReturn
     CREATE INDEX idx_productreturn_sale ON ProductReturn(saleId);
     CREATE INDEX idx_productreturn_product ON ProductReturn(productSKU);
 
@@ -344,7 +418,7 @@ CREATE TABLE ProductDiscount (
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU)
 );
--- Indexes for ProductDiscount
+-- Index(es) for ProductDiscount
     CREATE INDEX idx_productdiscount_discount ON ProductDiscount(discountId);
     CREATE INDEX idx_productdiscount_product  ON ProductDiscount(productSKU);
 
@@ -360,7 +434,7 @@ CREATE TABLE SaleDiscount (
     FOREIGN KEY(discountId)
         REFERENCES Discount(discountId)
 );
--- Indexes for SaleDiscount
+-- Index(es) for SaleDiscount
     CREATE INDEX idx_salediscount_sale ON SaleDiscount(saleId);
     CREATE INDEX idx_salediscount_discount ON SaleDiscount(discountId);
 
@@ -370,12 +444,14 @@ CREATE TABLE SaleDiscount (
 --Section 3 VR
 --TASK: Create Indexes and label tables
 
+-- RentalModel table
 DROP TABLE IF EXISTS RentalModel;
 CREATE TABLE RentalModel (
     modelId INTEGER PRIMARY KEY,
     rentalType TEXT NOT NULL
 );
 
+-- RentalUnit table
 DROP TABLE IF EXISTS RentalUnit;
 CREATE TABLE RentalUnit (
     unitId INTEGER PRIMARY KEY,
@@ -389,11 +465,12 @@ CREATE TABLE RentalUnit (
     FOREIGN KEY(storefrontId)
         REFERENCES Storefront(storefrontId)
 );
-
+-- Index(es) for for RentalUnit
     CREATE INDEX idx_rentalunit_model ON RentalModel(modelId);
     CREATE INDEX idx_rentalunit_store ON RentalUnit(storefrontId);
     CREATE INDEX idx_rentalunit_conditionStatus ON RentalUnit(conditionStatus);
 
+-- TransferHistory table
 DROP TABLE IF EXISTS TransferHistory;
 CREATE TABLE TransferHistory (
     transferId INTEGER PRIMARY KEY,
@@ -408,10 +485,12 @@ CREATE TABLE TransferHistory (
     FOREIGN KEY(fromStoreId)
         REFERENCES Storefront(storefrontId)     -- Changed this to storefrontId, might work? -OS
 );
+-- Index(es) for for TransferHistory
     CREATE INDEX idx_transferhistory_unit ON TransferHistory(unitId);
     CREATE INDEX idx_transferhistory_fromstore ON TransferHistory(fromStoreId);
     CREATE INDEX idx_transferhistory_tostore ON TransferHistory(toStoreId);
 
+-- RentalContract table
 DROP TABLE IF EXISTS RentalContract;
 CREATE TABLE RentalContract (
     contractId INTEGER PRIMARY KEY,
@@ -430,13 +509,14 @@ CREATE TABLE RentalContract (
     FOREIGN KEY(storeId)
         REFERENCES Storefront(storefrontId)
 );
-
+-- Index(es) for for RentalContract
     CREATE INDEX idx_rentalcontract_customer ON RentalContract(customerId);
     CREATE INDEX idx_rentalcontract_store ON RentalContract(storeId);
     CREATE INDEX idx_rentalcontract_startdate ON RentalContract(startDate);
     CREATE INDEX idx_rentalcontract_expectedreturn ON RentalContract(expectedReturnDate);
     CREATE INDEX idx_rentalcontract_isactive ON RentalContract(isActive);
 
+-- ContractExtension table
 DROP TABLE IF EXISTS ContractExtension;
 CREATE TABLE ContractExtension (
     extensionId INTEGER PRIMARY KEY,
@@ -446,9 +526,10 @@ CREATE TABLE ContractExtension (
     FOREIGN KEY(contractId)
         REFERENCES RentalContract(contractId)
 );
-
+-- Index(es) for ContractExtension
     CREATE INDEX idx_contractextension_contract ON ContractExtension(contractId);
 
+-- ContractUnit table
 DROP TABLE IF EXISTS ContractUnit;
 CREATE TABLE ContractUnit (
     contractId INTEGER,
@@ -459,10 +540,11 @@ CREATE TABLE ContractUnit (
     FOREIGN KEY(unitId)
         REFERENCES RentalUnit(unitId)
 );
-
+-- Index(es) for ContractUnit
     CREATE INDEX idx_contractunit_unit ON ContractUnit(unitId);
     CREATE INDEX idx_contractunit_contract ON ContractUnit(contractId);
 
+-- Ticket table
 DROP TABLE IF EXISTS Ticket;
 CREATE TABLE Ticket (
     ticketId INTEGER PRIMARY KEY,
@@ -474,11 +556,12 @@ CREATE TABLE Ticket (
     FOREIGN KEY(unitId)
         REFERENCES RentalUnit(unitId)
 );
-
+-- Index(es) for Ticket
     CREATE INDEX idx_ticket_unit ON Ticket(unitId);
     CREATE INDEX idx_ticket_priority ON Ticket(priority);
     CREATE INDEX idx_ticket_status ON Ticket(status);
 
+-- TicketPart table
 DROP TABLE IF EXISTS TicketPart;
 CREATE TABLE TicketPart (
     partId INTEGER,
@@ -490,10 +573,11 @@ CREATE TABLE TicketPart (
     FOREIGN KEY(ticketId)
         REFERENCES Ticket(ticketId)
 );
-
+-- Index(es) for TicketPart
     CREATE INDEX idx_ticketpart_part ON TicketPart(partId);
     CREATE INDEX idx_ticketpart_ticket ON TicketPart(ticketId);
 
+-- Part table
 DROP TABLE IF EXISTS Part;
 CREATE TABLE Part (
     partId INTEGER PRIMARY KEY,
@@ -503,9 +587,10 @@ CREATE TABLE Part (
     FOREIGN KEY(unitId)
         REFERENCES RentalUnit(unitId)
 );
-
+-- Index(es) for Part
     CREATE INDEX idx_part_unit ON Part(unitId);
 
+-- UnitPart table
 DROP TABLE IF EXISTS UnitPart;
 CREATE TABLE UnitPart (
     partId INTEGER,
@@ -516,7 +601,7 @@ CREATE TABLE UnitPart (
     FOREIGN KEY(unitId)
         REFERENCES RentalUnit(unitId)
 );
-
+-- Index(es) for UnitPart
     CREATE INDEX idx_unitpart_part ON UnitPart(partId);
     CREATE INDEX idx_unitpart_unit ON UnitPart(unitId);
 
