@@ -125,17 +125,6 @@ CREATE TABLE CourseSession (
     CREATE INDEX idx_coursesession_course ON CourseSession(courseId);
 
 
--- Instructor table
-CREATE TABLE Instructor (
-    instructorId INTEGER PRIMARY KEY,
-    firstName TEXT NOT NULL,
-    lastName TEXT NOT NULL,
-    salary NUMERIC NOT NULL CHECK(salary > 0)
-);
--- Index(es) for Instructor
-    CREATE INDEX idx_instructor_lastname ON Instructor(lastName);
-
-
 -- SessionInstructor table (associative)
 CREATE TABLE SessionInstructor (
     sessionId INTEGER NOT NULL,
@@ -144,7 +133,7 @@ CREATE TABLE SessionInstructor (
     FOREIGN KEY(sessionId)
         REFERENCES CourseSession(sessionId),
     FOREIGN KEY(instructorId)
-        REFERENCES Instructor(instructorId)
+        REFERENCES Employee(employeeId)
 );
 -- Index(es) for SessionInstructor
     CREATE INDEX idx_sessioninstructor_session ON SessionInstructor(sessionId);
