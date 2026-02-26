@@ -3,7 +3,7 @@
     Storefront          X
     Employee            X
     Role                X
-    Store_Shift
+    Store_Shift         X
     Training
     Training_Course
     Course_Session
@@ -44,7 +44,7 @@
     Unit_Part           X
     Ticket_Part         X
  */
-PRAGMA  foreign_keys = ON;
+PRAGMA foreign_keys = ON;
 
 DROP TABLE IF EXISTS Storefront;
 CREATE TABLE Storefront (
@@ -54,6 +54,7 @@ CREATE TABLE Storefront (
     phoneNumber UNIQUE NOT NULL,
     FOREIGN KEY (managerId) REFERENCES Employee(employeeId)
 );
+CREATE INDEX idx_storefront_employee ON Storefront(managerId);
 
 DROP TABLE IF EXISTS Employee;
 CREATE TABLE Employee (
@@ -65,10 +66,13 @@ CREATE TABLE Employee (
     hireDate TEXT NOT NULL,
     hourlyRate REAL NOT NULL,
     isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)),
-
     FOREIGN KEY (storeId) REFERENCES Storefront(storefrontId),
-    FOREIGN KEY (roleId) REFERENCES Role (roleId)
+    FOREIGN KEY (roleId) REFERENCES Role(roleId)
 );
+CREATE INDEX idx_employee_store ON Employee(storeId);
+CREATE INDEX idx_employee_role ON Employee(roleId);
+CREATE INDEX idx_employee_hiredate ON Employee(hireDate);
+CREATE INDEX idx_employee_hourlyrate ON Employee(hourlyRate);
 
 DROP TABLE IF EXISTS Role;
 CREATE TABLE Role (
@@ -77,20 +81,27 @@ CREATE TABLE Role (
     permissionLevel INTEGER NOT NULL
 );
 
-
-
-
+DROP TABLE IF EXISTS Storeshift;
+CREATE TABLE Storeshift (
+    shiftId INTEGER PRIMARY KEY,
+    employeeId INTEGER NOT NULL,
+    storeId INTEGER NOT NULL,
+    shiftStart TEXT NULL NULL,
+    shiftEnd TEXT NOT NULL,
+    FOREIGN KEY (employeeId) REFERENCES Employee(employeeId),
+    FOREIGN KEY (storeId) REFERENCES Storefront(storefrontId)
+);
+CREATE INDEX idx_storeshift_employee ON Storeshift(employeeId);
+CREATE INDEX idx_storeshift_store ON Storeshift(storeId);
 
 
 -- SECTION TWO - OS
-
 -- Customer table
 DROP TABLE IF EXISTS Customer;
 CREATE TABLE Customer (
     customerId INTEGER PRIMARY KEY,
     creationDate DATETIME NOT NULL
 );
-
 
 -- CustomerName Table (weak)
 DROP TABLE IF EXISTS CustomerName;
@@ -107,7 +118,6 @@ CREATE TABLE CustomerName (
     CREATE INDEX idx_customer_name
         ON CustomerName(customerId);
 
-
 -- CustomerPhone table (weak)
 DROP TABLE IF EXISTS CustomerPhone;
 CREATE TABLE CustomerPhone(
@@ -121,7 +131,6 @@ CREATE TABLE CustomerPhone(
     CREATE INDEX idx_customer_phone
         ON CustomerPhone(customerId);
 
-
 -- CustomerEmail table (weak)
 DROP TABLE IF EXISTS CustomerEmail;
 CREATE TABLE CustomerEmail (
@@ -134,7 +143,6 @@ CREATE TABLE CustomerEmail (
 -- Indexes for CustomerEmail
     CREATE INDEX idx_customer_email
         ON CustomerEmail(customerId);
-
 
 -- CustomerAddress table (weak)
 DROP TABLE IF EXISTS CustomerAddress;
@@ -163,7 +171,6 @@ CREATE TABLE Membership (
     membershipName TEXT NOT NULL
 );
 
-
 -- CustomerMembership table (associative)
 DROP TABLE IF EXISTS CustomerMembership;
 CREATE TABLE CustomerMembership (
@@ -183,7 +190,6 @@ CREATE TABLE CustomerMembership (
     CREATE INDEX idx_membership_customer
         ON CustomerMembership(membershipId);
 
-
 -- RetailProduct table
 DROP TABLE IF EXISTS RetailProduct;
 CREATE TABLE RetailProduct (
@@ -201,7 +207,6 @@ CREATE TABLE RetailProduct (
 -- Indexes for RetailProduct
     CREATE INDEX idx_product_variant
         ON RetailProduct(baseProductSKU);
-
 
 -- ProductStore table (associative)
 DROP TABLE IF EXISTS ProductStore;
@@ -221,7 +226,6 @@ CREATE TABLE ProductStore (
     CREATE INDEX idx_store_product
         ON ProductStore(storefrontId);
 
-
 -- Variant table (self-referencing to RetailProduct)
 DROP TABLE IF EXISTS Variant;
 CREATE TABLE Variant (
@@ -237,14 +241,12 @@ CREATE TABLE Variant (
     CREATE INDEX idx_variant_product
         ON Variant(productSKU);
 
-
 -- Vendor table
 DROP TABLE IF EXISTS Vendor;
 CREATE TABLE Vendor (
     vendorID INTEGER PRIMARY KEY,
     vendorName TEXT NOT NULL
 );
-
 
 -- ProductVendor table (associative)
 DROP TABLE IF EXISTS ProductVendor;
@@ -265,7 +267,6 @@ CREATE TABLE ProductVendor (
     CREATE INDEX idx_product_vendor
         ON ProductVendor(productSKU);
 
-
 -- RetailSale table
 DROP TABLE IF EXISTS RetailSale;
 CREATE TABLE RetailSale (
@@ -283,6 +284,7 @@ CREATE TABLE RetailSale (
     FOREIGN KEY(employeeId)
         REFERENCES Employee(employeeId)
 );
+
 -- Indexes for RetailSale
     CREATE INDEX idx_sale_customer
         ON RetailSale(customerId);
@@ -292,7 +294,6 @@ CREATE TABLE RetailSale (
 
     CREATE INDEX idx_sale_employee
         ON RetailSale(employeeId);
-
 
 -- ProductSale table (associative)
 DROP TABLE IF EXISTS ProductSale;
@@ -313,7 +314,6 @@ CREATE TABLE ProductSale (
     CREATE INDEX idx_product_sale
         ON ProductSale(productSKU);
 
-
 -- ProductReturn table
 DROP TABLE IF EXISTS ProductReturn;
 CREATE TABLE ProductReturn (        -- Will need a trigger somewhere here to "reverse" the sale made
@@ -332,7 +332,6 @@ CREATE TABLE ProductReturn (        -- Will need a trigger somewhere here to "re
 
     CREATE INDEX idx_return_product
         ON ProductReturn(productSKU);
-
 
 -- Discount table
 DROP TABLE IF EXISTS Discount;
@@ -378,9 +377,6 @@ CREATE TABLE SaleDiscount (
 
     CREATE INDEX idx_discount_sale
         ON SaleDiscount(discountId);
-
--- End Section 2 --
-
 
 --Section 3 VR
 --TASK: Create Indexes and label tables
