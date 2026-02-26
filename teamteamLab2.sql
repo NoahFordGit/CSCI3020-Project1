@@ -44,7 +44,7 @@
     Unit_Part           X
     Ticket_Part         X
  */
-PRAGMA  foreign_keys = ON;
+PRAGMA foreign_keys = ON;
 
 DROP TABLE IF EXISTS Storefront;
 CREATE TABLE Storefront (
@@ -54,21 +54,25 @@ CREATE TABLE Storefront (
     phoneNumber UNIQUE NOT NULL,
     FOREIGN KEY (managerId) REFERENCES Employee(employeeId)
 );
+CREATE INDEX idx_storefront_employee ON Storefront(managerId);
 
 DROP TABLE IF EXISTS Employee;
 CREATE TABLE Employee (
     employeeId INTEGER PRIMARY KEY,
-    storeId INTEGER NOT NULL,           -- I changed this to add NOT NULL for the "bad" insert statement -OS
+    storeId INTEGER,
     roleId INTEGER,
     firstName TEXT NOT NULL,
     lastName TEXT NOT NULL,
     hireDate TEXT NOT NULL,
     hourlyRate REAL NOT NULL,
     isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)),
-
     FOREIGN KEY (storeId) REFERENCES Storefront(storefrontId),
-    FOREIGN KEY (roleId) REFERENCES Role (roleId)
+    FOREIGN KEY (roleId) REFERENCES Role(roleId)
 );
+CREATE INDEX idx_employee_store ON Employee(storeId);
+CREATE INDEX idx_employee_role ON Employee(roleId);
+CREATE INDEX idx_employee_hiredate ON Employee(hireDate);
+CREATE INDEX idx_employee_hourlyrate ON Employee(hourlyRate);
 
 DROP TABLE IF EXISTS Role;
 CREATE TABLE Role (
@@ -77,13 +81,20 @@ CREATE TABLE Role (
     permissionLevel INTEGER NOT NULL
 );
 
-
-
-
-
+DROP TABLE IF EXISTS Storeshift;
+CREATE TABLE Storeshift (
+    shiftId INTEGER PRIMARY KEY,
+    employeeId INTEGER NOT NULL,
+    storeId INTEGER NOT NULL,
+    shiftStart TEXT NULL NULL,
+    shiftEnd TEXT NOT NULL,
+    FOREIGN KEY (employeeId) REFERENCES Employee(employeeId),
+    FOREIGN KEY (storeId) REFERENCES Storefront(storefrontId)
+);
+CREATE INDEX idx_storeshift_employee ON Storeshift(employeeId);
+CREATE INDEX idx_storeshift_store ON Storeshift(storeId);
 
 -- SECTION TWO - OS
-
 -- Customer table
 DROP TABLE IF EXISTS Customer;
 CREATE TABLE Customer (
