@@ -116,6 +116,7 @@ CREATE TABLE CustomerName (
 );
 -- Indexes for CustomerName
     CREATE INDEX idx_customername_customer ON CustomerName(customerId);
+    CREATE INDEX idx_customername_lastname ON CustomerName(lastName);
 
 
 -- CustomerPhone table (weak)
@@ -142,6 +143,7 @@ CREATE TABLE CustomerEmail (
 );
 -- Indexes for CustomerEmail
     CREATE INDEX idx_customeremail_customer ON CustomerEmail(customerId);
+    CREATE INDEX idx_customeremail_email ON CustomerEmail(emailAddress);
 
 
 -- CustomerAddress table (weak)
@@ -161,7 +163,9 @@ CREATE TABLE CustomerAddress (
 );
 -- Indexes for CustomerAddress
     CREATE INDEX idx_customeraddress_customer ON CustomerAddress(customerId);
-
+    CREATE INDEX idx_customeraddress_zipcode ON CustomerAddress(zipCode);
+    CREATE INDEX idx_customeraddress_city ON CustomerAddress(city);
+    CREATE INDEX idx_customeraddress_state ON CustomerAddress(state);
 
 -- Membership table
 DROP TABLE IF EXISTS Membership;
@@ -204,7 +208,8 @@ CREATE TABLE RetailProduct (
 );
 -- Indexes for RetailProduct
     CREATE INDEX idx_retailproduct_baseproduct ON RetailProduct(baseProductSKU);
-
+    CREATE INDEX idx_retailproduct_brand ON RetailProduct(brand);
+    CREATE INDEX idx_retailproduct_category ON RetailProduct(category);
 
 -- ProductStore table (associative)
 DROP TABLE IF EXISTS ProductStore;
@@ -283,6 +288,7 @@ CREATE TABLE RetailSale (
     CREATE INDEX idx_retailsale_customer ON RetailSale(customerId);
     CREATE INDEX idx_retailsale_store ON RetailSale(storefrontId);
     CREATE INDEX idx_retailsale_employee ON RetailSale(employeeId);
+    CREATE INDEX idx_retailsale_saledate ON RetailSale(saleDate);
 
 
 -- ProductSale table (associative)
@@ -386,6 +392,7 @@ CREATE TABLE RentalUnit (
 
     CREATE INDEX idx_rentalunit_model ON RentalModel(modelId);
     CREATE INDEX idx_rentalunit_store ON RentalUnit(storefrontId);
+    CREATE INDEX idx_rentalunit_conditionStatus ON RentalUnit(conditionStatus);
 
 DROP TABLE IF EXISTS TransferHistory;
 CREATE TABLE TransferHistory (
@@ -427,6 +434,8 @@ CREATE TABLE RentalContract (
     CREATE INDEX idx_rentalcontract_customer ON RentalContract(customerId);
     CREATE INDEX idx_rentalcontract_store ON RentalContract(storeId);
     CREATE INDEX idx_rentalcontract_startdate ON RentalContract(startDate);
+    CREATE INDEX idx_rentalcontract_expectedreturn ON RentalContract(expectedReturnDate);
+    CREATE INDEX idx_rentalcontract_isactive ON RentalContract(isActive);
 
 DROP TABLE IF EXISTS ContractExtension;
 CREATE TABLE ContractExtension (
@@ -467,6 +476,8 @@ CREATE TABLE Ticket (
 );
 
     CREATE INDEX idx_ticket_unit ON Ticket(unitId);
+    CREATE INDEX idx_ticket_priority ON Ticket(priority);
+    CREATE INDEX idx_ticket_status ON Ticket(status);
 
 DROP TABLE IF EXISTS TicketPart;
 CREATE TABLE TicketPart (
