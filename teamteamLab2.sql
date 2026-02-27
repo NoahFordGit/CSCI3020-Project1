@@ -178,6 +178,7 @@ CREATE UNIQUE INDEX idx_preferred_address ON CustomerAddress(customerId)
     WHERE isPreferred = 1; -- a customer may have ONE preferred address
 
 -- TrainingCourse table
+DROP TABLE IF EXISTS TrainingCourse;
 CREATE TABLE TrainingCourse (
     courseId INTEGER PRIMARY KEY,
     courseName TEXT NOT NULL,
@@ -185,6 +186,7 @@ CREATE TABLE TrainingCourse (
 );
 
 -- CourseSession table
+DROP TABLE IF EXISTS CourseSession;
 CREATE TABLE CourseSession (
     sessionId INTEGER PRIMARY KEY,
     capacity INTEGER NOT NULL,
@@ -196,6 +198,7 @@ CREATE TABLE CourseSession (
 CREATE INDEX idx_coursesession_course ON CourseSession(courseId);
 
 -- SessionInstructor table (associative)
+DROP TABLE IF EXISTS SessionInstructor;
 CREATE TABLE SessionInstructor (
     sessionId INTEGER NOT NULL,
     instructorId INTEGER NOT NULL, -- TRIGGER THAT EMPLOYEE MUST HAVE INSTRUCTOR ROLE
@@ -209,6 +212,7 @@ CREATE TABLE SessionInstructor (
 );
 
 -- Session Enroll Table
+DROP TABLE IF EXISTS SessionEnroll;
 CREATE TABLE SessionEnroll (
     sessionId INTEGER NOT NULL,
     customerId INTEGER NOT NULL,
@@ -578,10 +582,10 @@ CREATE INDEX idx_unitpart_unit ON UnitPart(unitId);
 
 -- Insert Statements (sample data)
 
-INSERT INTO RetailProduct(productSKU, name, brand, category, standardPrice, taxStatus, activeStatus, baseProductSKU)
-    VALUES(10000001, 'Toolbox', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active', NULL),
-            (10000002, 'Toolbox Red', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active', 10000001),
-            (10000003, 'Toolbox White', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active', 10000001);
+INSERT INTO RetailProduct(productSKU, name, brand, category, standardPrice, taxStatus, activeStatus)
+    VALUES(10000001, 'Toolbox', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active'),
+            (10000002, 'Toolbox Red', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active'),
+            (10000003, 'Toolbox White', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active');
 
 
 INSERT INTO Customer(customerId,creationDate)
@@ -606,9 +610,9 @@ INSERT INTO RentalModel(modelId, rentalType)
           (203, 'Weekly');
 
 INSERT INTO Role(roleId, roleTitle, permissionLevel)
-    VALUES(1,'Cashier', 2),
-          (2, 'Lead Cashier', 4),
-          (3, 'Cashier manager', 6);
+    VALUES(1,'Sales', 2),
+          (2, 'Repair Tech', 4),
+          (3, 'Trainer', 6);
 
 INSERT INTO Vendor(vendorID, vendorName)
     VALUES(900, 'Craftsman'),
