@@ -1,14 +1,16 @@
 /*
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!! THIS IS NO LONGER IN ORDER ( USE CTRL + F TO LOCATE TABLES) !!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     GROUP ONE - NOAH:
-    Storefront          X
+    Storefront          X T
     Employee            X
     Role                X
-    Store_Shift         X
-    Training            ?       -- Unknown table -OS
+    Store_Shift         X T
     Training_Course     X
     Course_Session      X
-    Instructor          X
-    Session_Instructor  X
+    Session_Instructor  X T
     Session_Enroll      X
 
     GROUP TWO - OLIVIA
@@ -18,14 +20,14 @@
     Customer_Email      X
     Customer_Address    X
     Membership          X
-    Customer_Membership X
+    Customer_Membership X T
     Retail_Product      X
     Product_Store       X
     Variant             X
     Vendor              X
     Product_Vendor      X
-    Retail_Sale         X
-    Product_Sale        X
+    Retail_Sale         X T
+    Product_Sale        X T
     Product_Return      X
     Discount            X
     Product_Discount    X
@@ -35,7 +37,7 @@
     GROUP THREE - VANAY
     Rental_Unit         X
     Rental_Model        X
-    Transfer_History    X
+    Transfer_History    X T
     Rental_Contract     X
     Contract_Unit       X
     Contract_Extension  X
@@ -46,18 +48,26 @@
  */
 PRAGMA foreign_keys = ON;
 
+-- Role table
+DROP TABLE IF EXISTS Role;
+CREATE TABLE Role (
+    roleId INTEGER PRIMARY KEY,
+    roleTitle TEXT NOT NULL UNIQUE CHECK (roleTitle IN ('Sales', 'Repair Tech', 'Trainer', 'Instructor', 'Manager')),
+    permissionLevel INTEGER NOT NULL
+);
+
 -- Storefront table
 DROP TABLE IF EXISTS Storefront;
 CREATE TABLE Storefront (
     storefrontId INTEGER PRIMARY KEY,
-    managerId INTEGER, -- REQUIRES TRIGGER TO CHECK FOR MANAGER ROLE ON EMPLOYEE
+    managerId INTEGER NOT NULL, -- REQUIRES TRIGGER TO CHECK FOR MANAGER ROLE ON EMPLOYEE
     storeAddress UNIQUE NOT NULL,
     phoneNumber UNIQUE NOT NULL,
-    FOREIGN KEY (managerId) REFERENCES Employee(employeeId)
+    FOREIGN KEY (managerId)
+        REFERENCES Employee(employeeId)
+        DEFERRABLE INITIALLY DEFERRED -- avoids circular dependency and makes it not break
 );
--- Index(es) for Storefront
-    CREATE INDEX idx_storefront_employee ON Storefront(managerId);
-
+CREATE INDEX idx_storefront_employee ON Storefront(managerId);
 
 -- Employee table
 DROP TABLE IF EXISTS Employee;
@@ -67,80 +77,36 @@ CREATE TABLE Employee (
     roleId INTEGER,
     firstName TEXT NOT NULL,
     lastName TEXT NOT NULL,
-    hireDate TEXT NOT NULL,
+    hireDate DATETIME NOT NULL,
     hourlyRate REAL NOT NULL,
     isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)),
-    FOREIGN KEY (storeId) REFERENCES Storefront(storefrontId),
-    FOREIGN KEY (roleId) REFERENCES Role(roleId)
+    FOREIGN KEY (roleId) REFERENCES Role(roleId),
+    FOREIGN KEY (storeId)
+        REFERENCES Storefront(storefrontId)
+        DEFERRABLE INITIALLY DEFERRED -- avoids circular dependency and makes it not break
 );
--- Index(es) for Employee
-    CREATE INDEX idx_employee_store ON Employee(storeId);
-    CREATE INDEX idx_employee_role ON Employee(roleId);
-    CREATE INDEX idx_employee_hiredate ON Employee(hireDate);
-    CREATE INDEX idx_employee_hourlyrate ON Employee(hourlyRate);
-
-
--- Role table
-DROP TABLE IF EXISTS Role;
-CREATE TABLE Role (
-    roleId INTEGER PRIMARY KEY,
-    roleTitle TEXT NOT NULL UNIQUE,
-    permissionLevel INTEGER NOT NULL
-);
-
+CREATE INDEX idx_employee_store ON Employee(storeId);
+CREATE INDEX idx_employee_role ON Employee(roleId);
+CREATE INDEX idx_employee_hiredate ON Employee(hireDate);
+CREATE INDEX idx_employee_hourlyrate ON Employee(hourlyRate);
 
 -- Storeshift table
 DROP TABLE IF EXISTS Storeshift;
 CREATE TABLE Storeshift (
-    shiftId INTEGER PRIMARY KEY,
+    shiftId INTEGER PRIMARY KEY, -- TRIGGER TO MAKE SURE THERE IS A MANAGER A IS WORKING AT ALL TIMES
     employeeId INTEGER NOT NULL,
     storeId INTEGER NOT NULL,
-    shiftStart TEXT NULL NULL,
-    shiftEnd TEXT NOT NULL,
-    FOREIGN KEY (employeeId) REFERENCES Employee(employeeId),
-    FOREIGN KEY (storeId) REFERENCES Storefront(storefrontId)
-);
--- Index(es) for Storeshift
-    CREATE INDEX idx_storeshift_employee ON Storeshift(employeeId);
-    CREATE INDEX idx_storeshift_store ON Storeshift(storeId);
-
-
--- TrainingCourse table
-CREATE TABLE TrainingCourse (
-    courseId INTEGER PRIMARY KEY,
-    courseName TEXT, NOT NULL,
-    description TEXT
-);
-
-
--- CourseSession table
-CREATE TABLE CourseSession (
-    sessionId INTEGER PRIMARY KEY,
-    capacity INTEGER NOT NULL,
-    courseId INTEGER NOT NULL,
-    FOREIGN KEY(courseId)
-        REFERENCES TrainingCourse(courseId)
-);
--- Index(es) for CourseSession
-    CREATE INDEX idx_coursesession_course ON CourseSession(courseId);
-
-
--- SessionInstructor table (associative)
-CREATE TABLE SessionInstructor (
-    sessionId INTEGER NOT NULL,
-    instructorId INTEGER NOT NULL,
-    PRIMARY KEY(sessionId, instructorId),
-    FOREIGN KEY(sessionId)
-        REFERENCES CourseSession(sessionId),
-    FOREIGN KEY(instructorId)
+    shiftStart DATETIME NOT NULL,
+    shiftEnd DATETIME NOT NULL,
+    FOREIGN KEY (employeeId)
         REFERENCES Employee(employeeId)
+        ON DELETE CASCADE,
+    FOREIGN KEY (storeId)
+        REFERENCES Storefront(storefrontId)
+        ON DELETE CASCADE
 );
--- Index(es) for SessionInstructor
-    CREATE INDEX idx_sessioninstructor_session ON SessionInstructor(sessionId);
-    CREATE INDEX idx_sessioninstructor_instructor ON SessionInstructor(instructorId);
-
-
-
+CREATE INDEX idx_storeshift_employee ON Storeshift(employeeId);
+CREATE INDEX idx_storeshift_store ON Storeshift(storeId);
 
 -- SECTION TWO - OS
 -- Customer table
@@ -149,86 +115,113 @@ CREATE TABLE Customer (
     customerId INTEGER PRIMARY KEY,
     creationDate DATETIME NOT NULL
 );
-
--- Section One table that had to be moved here due to customer table placement
-CREATE TABLE SessionEnroll (
-    sessionId INTEGER NOT NULL,
-    customerId INTEGER NOT NULL,
-    PRIMARY KEY(sessionId, customerId),
-    FOREIGN KEY(sessionId)
-        REFERENCES CourseSession(sessionId),
-    FOREIGN KEY(customerId)
-        REFERENCES Customer(customerId)
-);
--- Index(es) for SessionEnroll
-    CREATE INDEX idx_sessionenroll_session ON SessionEnroll(sessionId);
-    CREATE INDEX idx_sessionenroll_customer ON SessionEnroll(customerId);
-
-
+CREATE INDEX idx_customer_creationdate ON Customer(creationDate);
 
 -- CustomerName Table (weak)
 DROP TABLE IF EXISTS CustomerName;
 CREATE TABLE CustomerName (
-    customerId INTEGER,
-    firstName TEXT,
-    lastName TEXT,
-      FOREIGN KEY(customerId)
-        REFERENCES Customer(customerId),
-    PRIMARY KEY(customerId,firstName, lastName)
-
+    customerId INTEGER NOT NULL,
+    firstName TEXT NOT NULL,
+    lastName TEXT NOT NULL,
+    PRIMARY KEY(customerId, firstName, lastName),
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId)
+        ON DELETE CASCADE
 );
--- Index(es) for CustomerName
-    CREATE INDEX idx_customername_customer ON CustomerName(customerId);
-    CREATE INDEX idx_customername_lastname ON CustomerName(lastName);
-
+CREATE INDEX idx_customername_firstname ON CustomerName(firstName);
+CREATE INDEX idx_customername_lastname ON CustomerName(lastName);
 
 -- CustomerPhone table (weak)
 DROP TABLE IF EXISTS CustomerPhone;
 CREATE TABLE CustomerPhone(
-    customerId INTEGER,
-    phoneNumber INTEGER,
+    customerId INTEGER NOT NULL,
+    phoneNumber TEXT NOT NULL,
     PRIMARY KEY(customerId, phoneNumber),
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
+        ON DELETE CASCADE
 );
--- Index(es) for CustomerPhone
-    CREATE INDEX idx_customerphone_customer ON CustomerPhone(customerId);
-
 
 -- CustomerEmail table (weak)
 DROP TABLE IF EXISTS CustomerEmail;
 CREATE TABLE CustomerEmail (
-    customerId INTEGER,
-    emailAddress TEXT,
+    customerId INTEGER NOT NULL,
+    emailAddress TEXT NOT NULL,
     PRIMARY KEY(customerId, emailAddress),
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
+        ON DELETE CASCADE
 );
--- Index(es) for CustomerEmail
-    CREATE INDEX idx_customeremail_customer ON CustomerEmail(customerId);
-    CREATE INDEX idx_customeremail_email ON CustomerEmail(emailAddress);
-
+CREATE INDEX idx_customeremail_email ON CustomerEmail(emailAddress);
 
 -- CustomerAddress table (weak)
 DROP TABLE IF EXISTS CustomerAddress;
 CREATE TABLE CustomerAddress (
-    customerId INTEGER,
-    zipCode INTEGER,
-    addressLine1 TEXT,
-    addressLine2 TEXT,
-    city TEXT,
-    state TEXT,
-    country TEXT,
-    isPreferred INTEGER NOT NULL DEFAULT 1 CHECK (isPreferred IN (0, 1)),
-    PRIMARY KEY(customerId, zipCode, addressLine1, addressLine2, city, state, country),
+    addressId INTEGER PRIMARY KEY,
+    customerId INTEGER NOT NULL,
+    zipCode TEXT NOT NULL,
+    addressLine1 TEXT NOT NULL,
+    addressLine2 TEXT DEFAULT NULL,
+    city TEXT NOT NULL,
+    state TEXT NOT NULL,
+    country TEXT NOT NULL,
+    isPreferred INTEGER NOT NULL DEFAULT 0 CHECK (isPreferred IN (0, 1)),
+
+    UNIQUE(customerId, zipCode, addressLine1, addressLine2, city, state, country),
+
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
+        ON DELETE CASCADE
 );
--- Index(es) for CustomerAddress
-    CREATE INDEX idx_customeraddress_customer ON CustomerAddress(customerId);
-    CREATE INDEX idx_customeraddress_zipcode ON CustomerAddress(zipCode);
-    CREATE INDEX idx_customeraddress_city ON CustomerAddress(city);
-    CREATE INDEX idx_customeraddress_state ON CustomerAddress(state);
+CREATE INDEX idx_customeraddress_zipcode ON CustomerAddress(zipCode);
+CREATE UNIQUE INDEX idx_preferred_address ON CustomerAddress(customerId)
+    WHERE isPreferred = 1; -- a customer may have ONE preferred address
+
+-- TrainingCourse table
+CREATE TABLE TrainingCourse (
+    courseId INTEGER PRIMARY KEY,
+    courseName TEXT NOT NULL,
+    description TEXT
+);
+
+-- CourseSession table
+CREATE TABLE CourseSession (
+    sessionId INTEGER PRIMARY KEY,
+    capacity INTEGER NOT NULL,
+    courseId INTEGER NOT NULL,
+    FOREIGN KEY(courseId)
+        REFERENCES TrainingCourse(courseId)
+        ON DELETE CASCADE
+);
+CREATE INDEX idx_coursesession_course ON CourseSession(courseId);
+
+-- SessionInstructor table (associative)
+CREATE TABLE SessionInstructor (
+    sessionId INTEGER NOT NULL,
+    instructorId INTEGER NOT NULL, -- TRIGGER THAT EMPLOYEE MUST HAVE INSTRUCTOR ROLE
+    PRIMARY KEY(sessionId, instructorId),
+    FOREIGN KEY(sessionId)
+        REFERENCES CourseSession(sessionId)
+        ON DELETE CASCADE,
+    FOREIGN KEY(instructorId)
+        REFERENCES Employee(employeeId)
+        ON DELETE CASCADE
+);
+
+-- Session Enroll Table
+CREATE TABLE SessionEnroll (
+    sessionId INTEGER NOT NULL,
+    customerId INTEGER NOT NULL,
+    PRIMARY KEY(customerId, sessionId),
+    FOREIGN KEY(customerId)
+        REFERENCES Customer(customerId)
+        ON DELETE CASCADE,
+    FOREIGN KEY(sessionId)
+        REFERENCES CourseSession(sessionId)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_sessioninstructor_instructor ON SessionInstructor(instructorId);
 
 -- Membership table
 DROP TABLE IF EXISTS Membership;
@@ -236,24 +229,23 @@ CREATE TABLE Membership (
     membershipId INTEGER PRIMARY KEY,
     membershipName TEXT NOT NULL
 );
-
+CREATE INDEX idx_membership_name ON Membership(membershipName);
 
 -- CustomerMembership table (associative)
 DROP TABLE IF EXISTS CustomerMembership;
 CREATE TABLE CustomerMembership (
     membershipId INTEGER,
     customerId INTEGER,
-    isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)),
-    PRIMARY KEY(membershipId, customerId),
+    isActive INTEGER NOT NULL DEFAULT 0 CHECK (isActive IN (0, 1)), -- TRIGGER THAT ONE AND ONLY ONE MEMBERSHIP CAN BE ACTIVE
+    PRIMARY KEY(customerId, membershipId),
     FOREIGN KEY(membershipId)
-        REFERENCES Membership(membershipId),
+        REFERENCES Membership(membershipId)
+        ON DELETE CASCADE,
     FOREIGN KEY(customerId)
         REFERENCES Customer(customerId)
+        ON DELETE CASCADE
 );
--- Index(es) for CustomerMembership
-    CREATE INDEX idx_customermembership_customer ON CustomerMembership(customerId);
-    CREATE INDEX idx_customermembership_membership ON CustomerMembership(membershipId);
-
+CREATE INDEX idx_customermembership_membership ON CustomerMembership(membershipId);
 
 -- RetailProduct table
 DROP TABLE IF EXISTS RetailProduct;
@@ -264,46 +256,41 @@ CREATE TABLE RetailProduct (
     category TEXT NOT NULL,
     standardPrice NUMERIC NOT NULL CHECK(standardPrice > 0),
     taxStatus TEXT NOT NULL CHECK(taxStatus IN ('Exempt', 'Non-exempt')),
-    activeStatus TEXT NOT NULL CHECK(activeStatus IN ('Active', 'Inactive')),
-    baseProductSKU INTEGER,     -- This value is NULLABLE
-    FOREIGN KEY(baseProductSKU)
-        REFERENCES Variant(baseProductSKU)
+    activeStatus TEXT NOT NULL CHECK(activeStatus IN ('Active', 'Inactive'))
 );
 -- Index(es) for RetailProduct
-    CREATE INDEX idx_retailproduct_baseproduct ON RetailProduct(baseProductSKU);
     CREATE INDEX idx_retailproduct_brand ON RetailProduct(brand);
     CREATE INDEX idx_retailproduct_category ON RetailProduct(category);
-
--- ProductStore table (associative)
-DROP TABLE IF EXISTS ProductStore;
-CREATE TABLE ProductStore (
-    productSKU INTEGER,
-    storefrontId INTEGER,
-    PRIMARY KEY(productSKU, storefrontId),
-    FOREIGN KEY(productSKU)
-        REFERENCES RetailProduct(productSKU),
-    FOREIGN KEY(storefrontId)
-        REFERENCES Storefront(storefrontId)
-);
--- Index(es) for ProductStore
-    CREATE INDEX idx_productstore_product ON ProductStore(productSKU);
-    CREATE INDEX idx_productstore_store ON ProductStore(storefrontId);
-
 
 -- Variant table (self-referencing to RetailProduct)
 DROP TABLE IF EXISTS Variant;
 CREATE TABLE Variant (
-    productSKU INTEGER,
-    baseProductSKU INTEGER,
+    variantSKU INTEGER PRIMARY KEY,
+    baseProductSKU INTEGER NOT NULL,
     size TEXT,
     color TEXT,
-    PRIMARY KEY(productSKU, baseProductSKU),
-    FOREIGN KEY(productSKU)
-         REFERENCES RetailProduct(productSKU)
+    FOREIGN KEY(baseProductSKU)
+        REFERENCES RetailProduct(productSKU)
+        ON DELETE CASCADE
 );
--- Index(es) for Variant
-    CREATE INDEX idx_variant_product ON Variant(productSKU);
+CREATE INDEX idx_variant_baseproduct ON Variant(baseProductSKU);
 
+-- ProductStore table (associative)
+DROP TABLE IF EXISTS ProductStore;
+CREATE TABLE ProductStore (
+    productSKU INTEGER NOT NULL,
+    storefrontId INTEGER NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    PRIMARY KEY(productSKU, storefrontId),
+    FOREIGN KEY(productSKU)
+        REFERENCES RetailProduct(productSKU)
+        ON DELETE CASCADE,
+    FOREIGN KEY(storefrontId)
+        REFERENCES Storefront(storefrontId)
+        ON DELETE CASCADE
+);
+CREATE INDEX idx_productstore_store ON ProductStore(storefrontId);
+CREATE INDEX idx_productstore_quantity ON ProductStore(quantity);
 
 -- Vendor table
 DROP TABLE IF EXISTS Vendor;
@@ -311,7 +298,6 @@ CREATE TABLE Vendor (
     vendorID INTEGER PRIMARY KEY,
     vendorName TEXT NOT NULL
 );
-
 
 -- ProductVendor table (associative)
 DROP TABLE IF EXISTS ProductVendor;
@@ -321,14 +307,13 @@ CREATE TABLE ProductVendor (
     details TEXT,
     PRIMARY KEY(vendorID, productSKU),
     FOREIGN KEY(vendorID)
-        REFERENCES Vendor(vendorID),
+        REFERENCES Vendor(vendorID)
+        ON DELETE CASCADE,
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU)
+        ON DELETE CASCADE
 );
--- Index(es) for ProductVendor
-    CREATE INDEX idx_retailsale_vendor ON ProductVendor(vendorID);
-    CREATE INDEX idx_productvendor_product ON ProductVendor(productSKU);
-
+CREATE INDEX idx_productvendor_product ON ProductVendor(productSKU);
 
 -- RetailSale table
 DROP TABLE IF EXISTS RetailSale;
@@ -341,35 +326,35 @@ CREATE TABLE RetailSale (
     storefrontId INTEGER NOT NULL,
     employeeId INTEGER NOT NULL,
     FOREIGN KEY(customerId)
-        REFERENCES Customer(customerId),
+        REFERENCES Customer(customerId)
+        ON DELETE CASCADE,
     FOREIGN KEY(storefrontId)
-        REFERENCES Storefront(storefrontId),
+        REFERENCES Storefront(storefrontId)
+        ON DELETE CASCADE,
     FOREIGN KEY(employeeId)
         REFERENCES Employee(employeeId)
+        ON DELETE CASCADE
 );
--- Index(es) for RetailSale
-    CREATE INDEX idx_retailsale_customer ON RetailSale(customerId);
-    CREATE INDEX idx_retailsale_store ON RetailSale(storefrontId);
-    CREATE INDEX idx_retailsale_employee ON RetailSale(employeeId);
-    CREATE INDEX idx_retailsale_saledate ON RetailSale(saleDate);
-
+CREATE INDEX idx_retailsale_customer ON RetailSale(customerId);
+CREATE INDEX idx_retailsale_store ON RetailSale(storefrontId);
+CREATE INDEX idx_retailsale_employee ON RetailSale(employeeId);
+CREATE INDEX idx_retailsale_saledate ON RetailSale(saleDate);
 
 -- ProductSale table (associative)
 DROP TABLE IF EXISTS ProductSale;
 CREATE TABLE ProductSale (
-    saleId INTEGER,
-    productSKU INTEGER,
+    saleId INTEGER NOT NULL,
+    productSKU INTEGER NOT NULL,
     quantity INTEGER NOT NULL CHECK(quantity > 0),  -- Quantity cannot be zero here
     PRIMARY KEY(saleId, productSKU),
     FOREIGN KEY(saleId)                             -- Will need a trigger here to update inventory
-        REFERENCES RetailSale(saleId),
+        REFERENCES RetailSale(saleId)
+        ON DELETE CASCADE,
     FOREIGN KEY(productSKU)
          REFERENCES RetailProduct(productSKU)
+         ON DELETE CASCADE
 );
--- Index(es) for ProductSale
-    CREATE INDEX idx_productsale_sale ON ProductSale(saleId);
-    CREATE INDEX idx_productsale_product ON ProductSale(productSKU);
-
+CREATE INDEX idx_productsale_product ON ProductSale(productSKU);
 
 -- ProductReturn table
 DROP TABLE IF EXISTS ProductReturn;
@@ -379,21 +364,21 @@ CREATE TABLE ProductReturn (        -- Will need a trigger somewhere here to "re
     saleId INTEGER NOT NULL,
     productSKU INTEGER NOT NULL,
     FOREIGN KEY(saleId)
-        REFERENCES RetailSale(saleId),
+        REFERENCES RetailSale(saleId)
+        ON DELETE CASCADE,
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU)
+        ON DELETE CASCADE
 );
--- Index(es) for ProductReturn
-    CREATE INDEX idx_productreturn_sale ON ProductReturn(saleId);
-    CREATE INDEX idx_productreturn_product ON ProductReturn(productSKU);
-
+CREATE INDEX idx_productreturn_sale ON ProductReturn(saleId);
+CREATE INDEX idx_productreturn_product ON ProductReturn(productSKU);
 
 -- Discount table
 DROP TABLE IF EXISTS Discount;
 CREATE TABLE Discount (
     discountId INTEGER PRIMARY KEY,
-    discountName TEXT NOT NULl,
-    discountType TEXT NOT NULL
+    discountName TEXT NOT NULL,
+    discountType TEXT NOT NULL CHECK (discountType IN ('Percentage', 'Fixed'))
 );
 
 -- ProductDiscount table (associative)
@@ -403,14 +388,13 @@ CREATE TABLE ProductDiscount (
     productSKU INTEGER,
     PRIMARY KEY(discountId, productSKU),
     FOREIGN KEY(discountId)
-        REFERENCES Discount(discountId),
+        REFERENCES Discount(discountId)
+        ON DELETE CASCADE,
     FOREIGN KEY(productSKU)
         REFERENCES RetailProduct(productSKU)
+        ON DELETE CASCADE
 );
--- Index(es) for ProductDiscount
-    CREATE INDEX idx_productdiscount_discount ON ProductDiscount(discountId);
-    CREATE INDEX idx_productdiscount_product  ON ProductDiscount(productSKU);
-
+CREATE INDEX idx_productdiscount_product  ON ProductDiscount(productSKU);
 
 -- SaleDiscount table (associative)
 DROP TABLE IF EXISTS SaleDiscount;
@@ -419,20 +403,15 @@ CREATE TABLE SaleDiscount (
     discountId INTEGER,
     PRIMARY KEY(saleId, discountId),
     FOREIGN KEY(saleId)
-        REFERENCES RetailSale(saleId),
+        REFERENCES RetailSale(saleId)
+        ON DELETE CASCADE,
     FOREIGN KEY(discountId)
         REFERENCES Discount(discountId)
+        ON DELETE CASCADE
 );
--- Index(es) for SaleDiscount
-    CREATE INDEX idx_salediscount_sale ON SaleDiscount(saleId);
-    CREATE INDEX idx_salediscount_discount ON SaleDiscount(discountId);
-
--- End Section 2 --
-
+CREATE INDEX idx_salediscount_discount ON SaleDiscount(discountId);
 
 --Section 3 VR
---TASK: Create Indexes and label tables
-
 -- RentalModel table
 DROP TABLE IF EXISTS RentalModel;
 CREATE TABLE RentalModel (
@@ -450,14 +429,15 @@ CREATE TABLE RentalUnit (
     modelId INTEGER NOT NULL,
     storefrontId INTEGER NOT NULL,
     FOREIGN KEY(modelId)
-        REFERENCES RentalModel(modelId),
+        REFERENCES RentalModel(modelId)
+        ON DELETE CASCADE,
     FOREIGN KEY(storefrontId)
         REFERENCES Storefront(storefrontId)
+        ON DELETE CASCADE
 );
--- Index(es) for for RentalUnit
-    CREATE INDEX idx_rentalunit_model ON RentalModel(modelId);
-    CREATE INDEX idx_rentalunit_store ON RentalUnit(storefrontId);
-    CREATE INDEX idx_rentalunit_conditionStatus ON RentalUnit(conditionStatus);
+CREATE INDEX idx_rentalunit_model ON RentalModel(modelId);
+CREATE INDEX idx_rentalunit_store ON RentalUnit(storefrontId);
+CREATE INDEX idx_rentalunit_conditionStatus ON RentalUnit(conditionStatus);
 
 -- TransferHistory table
 DROP TABLE IF EXISTS TransferHistory;
@@ -465,19 +445,21 @@ CREATE TABLE TransferHistory (
     transferId INTEGER PRIMARY KEY,
     transferDate DATETIME NOT NULL,    --Changed TransferTime in ERD to TransferDate for clarity
     unitId INTEGER NOT NULL,
-    fromStoreId INTEGER NOT NULL, --How to tackle this? Just reference storefront again? 
+    fromStoreId INTEGER NOT NULL,
     toStoreId INTEGER NOT NULL,
     FOREIGN KEY(toStoreId)
-        REFERENCES Storefront(storefrontId),    -- Added this, just a minor oversight - OS
+        REFERENCES Storefront(storefrontId)    -- Added this, just a minor oversight - OS
+        ON DELETE CASCADE,
     FOREIGN KEY(unitId)
-        REFERENCES RentalUnit(unitId),
+        REFERENCES RentalUnit(unitId)
+        ON DELETE CASCADE,
     FOREIGN KEY(fromStoreId)
-        REFERENCES Storefront(storefrontId)     -- Changed this to storefrontId, might work? -OS
+        REFERENCES Storefront(storefrontId)     -- TRIGGER THAT THESE CANNOT BE THE SAME STOREFRONT
+        ON DELETE CASCADE
 );
--- Index(es) for for TransferHistory
-    CREATE INDEX idx_transferhistory_unit ON TransferHistory(unitId);
-    CREATE INDEX idx_transferhistory_fromstore ON TransferHistory(fromStoreId);
-    CREATE INDEX idx_transferhistory_tostore ON TransferHistory(toStoreId);
+CREATE INDEX idx_transferhistory_unit ON TransferHistory(unitId);
+CREATE INDEX idx_transferhistory_fromstore ON TransferHistory(fromStoreId);
+CREATE INDEX idx_transferhistory_tostore ON TransferHistory(toStoreId);
 
 -- RentalContract table
 DROP TABLE IF EXISTS RentalContract;
@@ -485,25 +467,28 @@ CREATE TABLE RentalContract (
     contractId INTEGER PRIMARY KEY,
     startDate DATETIME NOT NULL,
     expectedReturnDate DATETIME NOT NULL,
-    depositAmount INTEGER NOT NULL,
+    depositAmount NUMERIC NOT NULL,
     lateFee INTEGER NOT NULL,
     isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)), --Verify this
     customerId INTEGER NOT NULL,
     employeeId INTEGER NOT NULL,
-    storeId INTEGER NOT NUll,
+    storeId INTEGER NOT NULL,
     FOREIGN KEY(customerId)
-        REFERENCES Customer(customerId),
+        REFERENCES Customer(customerId)
+        ON DELETE CASCADE,
     FOREIGN KEY(employeeId)
-        REFERENCES Employee(employeeId),
+        REFERENCES Employee(employeeId)
+        ON DELETE CASCADE,
     FOREIGN KEY(storeId)
         REFERENCES Storefront(storefrontId)
+        ON DELETE CASCADE
 );
--- Index(es) for for RentalContract
-    CREATE INDEX idx_rentalcontract_customer ON RentalContract(customerId);
-    CREATE INDEX idx_rentalcontract_store ON RentalContract(storeId);
-    CREATE INDEX idx_rentalcontract_startdate ON RentalContract(startDate);
-    CREATE INDEX idx_rentalcontract_expectedreturn ON RentalContract(expectedReturnDate);
-    CREATE INDEX idx_rentalcontract_isactive ON RentalContract(isActive);
+CREATE INDEX idx_rentalcontract_customer ON RentalContract(customerId);
+CREATE INDEX idx_rentalcontract_employee ON RentalContract(employeeId);
+CREATE INDEX idx_rentalcontract_store ON RentalContract(storeId);
+CREATE INDEX idx_rentalcontract_startdate ON RentalContract(startDate);
+CREATE INDEX idx_rentalcontract_expectedreturn ON RentalContract(expectedReturnDate);
+CREATE INDEX idx_rentalcontract_isactive ON RentalContract(isActive);
 
 -- ContractExtension table
 DROP TABLE IF EXISTS ContractExtension;
@@ -514,9 +499,9 @@ CREATE TABLE ContractExtension (
     contractId INTEGER NOT NULL,
     FOREIGN KEY(contractId)
         REFERENCES RentalContract(contractId)
+        ON DELETE CASCADE
 );
--- Index(es) for ContractExtension
-    CREATE INDEX idx_contractextension_contract ON ContractExtension(contractId);
+CREATE INDEX idx_contractextension_contract ON ContractExtension(contractId);
 
 -- ContractUnit table
 DROP TABLE IF EXISTS ContractUnit;
@@ -525,13 +510,13 @@ CREATE TABLE ContractUnit (
     unitId INTEGER,
     PRIMARY KEY(contractId, unitId),
     FOREIGN KEY(contractId)
-        REFERENCES RentalContract(contractId),
+        REFERENCES RentalContract(contractId)
+        ON DELETE CASCADE,
     FOREIGN KEY(unitId)
         REFERENCES RentalUnit(unitId)
+        ON DELETE CASCADE
 );
--- Index(es) for ContractUnit
-    CREATE INDEX idx_contractunit_unit ON ContractUnit(unitId);
-    CREATE INDEX idx_contractunit_contract ON ContractUnit(contractId);
+CREATE INDEX idx_contractunit_unit ON ContractUnit(unitId);
 
 -- Ticket table
 DROP TABLE IF EXISTS Ticket;
@@ -544,11 +529,20 @@ CREATE TABLE Ticket (
     unitId INTEGER NOT NULL,
     FOREIGN KEY(unitId)
         REFERENCES RentalUnit(unitId)
+        ON DELETE CASCADE
 );
--- Index(es) for Ticket
-    CREATE INDEX idx_ticket_unit ON Ticket(unitId);
-    CREATE INDEX idx_ticket_priority ON Ticket(priority);
-    CREATE INDEX idx_ticket_status ON Ticket(status);
+CREATE INDEX idx_ticket_unit ON Ticket(unitId);
+CREATE INDEX idx_ticket_priority ON Ticket(priority);
+CREATE INDEX idx_ticket_status ON Ticket(status);
+
+-- Part table
+DROP TABLE IF EXISTS Part;
+CREATE TABLE Part (
+    partId INTEGER PRIMARY KEY,
+    partName TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    unitId INTEGER NOT NULL
+);
 
 -- TicketPart table
 DROP TABLE IF EXISTS TicketPart;
@@ -558,26 +552,13 @@ CREATE TABLE TicketPart (
     quantity INTEGER NOT NULL,
     PRIMARY KEY(partId, ticketId),
     FOREIGN KEY(partId)
-        REFERENCES Part(partId),
+        REFERENCES Part(partId)
+        ON DELETE CASCADE,
     FOREIGN KEY(ticketId)
         REFERENCES Ticket(ticketId)
+        ON DELETE CASCADE
 );
--- Index(es) for TicketPart
-    CREATE INDEX idx_ticketpart_part ON TicketPart(partId);
-    CREATE INDEX idx_ticketpart_ticket ON TicketPart(ticketId);
-
--- Part table
-DROP TABLE IF EXISTS Part;
-CREATE TABLE Part (
-    partId INTEGER PRIMARY KEY,
-    partName TEXT NOT NULL,
-    quantity INTEGER NOT NULL,
-    unitId INTEGER NOT NULL,
-    FOREIGN KEY(unitId)
-        REFERENCES RentalUnit(unitId)
-);
--- Index(es) for Part
-    CREATE INDEX idx_part_unit ON Part(unitId);
+CREATE INDEX idx_ticketpart_ticket ON TicketPart(ticketId);
 
 -- UnitPart table
 DROP TABLE IF EXISTS UnitPart;
@@ -586,13 +567,13 @@ CREATE TABLE UnitPart (
     unitId INTEGER,
     PRIMARY KEY(partId, unitId),
     FOREIGN KEY(partId)
-        REFERENCES Part(partId),
+        REFERENCES Part(partId)
+        ON DELETE CASCADE,
     FOREIGN KEY(unitId)
         REFERENCES RentalUnit(unitId)
+        ON DELETE CASCADE
 );
--- Index(es) for UnitPart
-    CREATE INDEX idx_unitpart_part ON UnitPart(partId);
-    CREATE INDEX idx_unitpart_unit ON UnitPart(unitId);
+CREATE INDEX idx_unitpart_unit ON UnitPart(unitId);
 
 
 -- Insert Statements (sample data)
@@ -650,7 +631,7 @@ INSERT INTO CustomerAddress(customerId, zipCode, addressLine1, addressLine2, cit
 INSERT INTO CustomerMembership(membershipId, customerId, isActive)
     VALUES(8, 1001, 5);
 
--- Delete Statements (please run these after testing insert statements or they will not work)
+-- Delete Statements (please run these after testing insert statements, or they will not work)
 DELETE FROM RetailProduct;
 DELETE FROM Customer;
 DELETE FROM CustomerName;
