@@ -581,11 +581,17 @@ CREATE INDEX idx_unitpart_unit ON UnitPart(unitId);
 
 
 -- Insert Statements (sample data)
+-- Note all inserts should pass unless stated otherwise
 
 INSERT INTO RetailProduct(productSKU, name, brand, category, standardPrice, taxStatus, activeStatus)
     VALUES(10000001, 'Toolbox', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active'),
             (10000002, 'Toolbox Red', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active'),
-            (10000003, 'Toolbox White', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active');
+            (10000003, 'Toolbox White', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active'),
+            (10000004, 'Ball-Peen Hammer', 'Stanley', 'Tools', 9.99, 'Non-exempt', 'Active'),
+            (10000005, 'Claw Hammer', 'Stanley', 'Tools', 8.99, 'Non-exempt', 'Active'),
+            (10000006, 'Drill/Driver Kit', 'Dewalt', 'Tools', 99.99, 'Exempt', 'Active'),
+            (10000007, 'Thermal Gloves', 'Dewalt', 'Workwear', 7.99, 'Exempt', 'Active'),
+            (10000008, 'Welding Gloves', 'Dewalt', 'Workwaer', 39.99, 'Exempt', 'Active');
 
 
 INSERT INTO Customer(customerId,creationDate)
@@ -616,7 +622,70 @@ INSERT INTO Role(roleId, roleTitle, permissionLevel)
 
 INSERT INTO Vendor(vendorID, vendorName)
     VALUES(900, 'Craftsman'),
-          (901, 'Dewalt');
+          (901, 'Dewalt'),
+          (902, 'Stanley');
+
+INSERT INTO RentalUnit(unitId, name, conditionStatus, purchaseDate, modelId, storefrontId)
+    VALUES(301, 'Forklift A', 'Good', '2024-05-01', 202, 1),
+          (302, 'Forklift B', 'Fair', '2024-06-15', 202, 1),
+          (303, 'Pallet Jack', 'Good', '2024-07-10', 201, 1);
+
+
+INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, customerId, employeeId, storeId)
+VALUES
+    (501, '2026-03-01', '2026-03-05', 50, 10, 1001, 1, 1);
+
+-- This insert should FAIL if trigger works
+INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, customerId, employeeId, storeId)
+    VALUES (502, '2026-03-03', '2026-03-07', 50, 10, 1002, 1, 1);
+
+INSERT INTO ContractUnit(contractId, unitId)
+    VALUES(501, 301);
+
+INSERT INTO Membership(membershipId, membershipName)
+    VALUES(1, 'Basic'),
+          (2, 'Premium');
+
+
+
+INSERT INTO CustomerMembership(membershipId, customerId, isActive)
+    VALUES(1, 1001, 1);
+
+-- This insert should FAIL if trigger works
+INSERT INTO CustomerMembership(membershipId, customerId, isActive)
+    VALUES(2, 1001, 1);
+
+INSERT INTO RetailSale(saleId, saleDate, taxAmount, subtotalAmount, customerId, storefrontId, employeeId)
+    VALUES(7001, '2026-02-15 10:00:00', 2.50, 25.00, 1001, 1, 1);
+
+INSERT INTO ProductSale(saleId, productSKU, quantity)
+    VALUES(7001, 10000001, 1),
+          (7001, 10000004, 2),
+          (7001, 10000007, 1);
+
+
+INSERT INTO Discount(discountId, discountName, discountType)
+    VALUES(301, 'Winter Sale', 'Percentage');
+
+
+INSERT INTO SaleDiscount(saleId, discountId)
+    VALUES(7001, 301);
+
+INSERT INTO Ticket(ticketId, priority, status, labor, billAmount, unitId)
+    VALUES(801, 'High', 'Open', 'Replace hydraulic line', 120, 301);
+
+INSERT INTO Part(partId, partName, quantity, unitId)
+    VALUES(901, 'Hydraulic Hose', 10, 301),
+          (902, 'Hydraulic Fluid', 5, 301);
+
+INSERT INTO TicketPart(partId, ticketId, quantity)
+    VALUES(901, 801, 1),
+          (902, 801, 2);
+
+INSERT INTO UnitPart(partId, unitId)
+    VALUES(901, 301),
+          (902, 301);
+
 
 
 -- This insert is supposed to FAIL
@@ -648,3 +717,16 @@ DELETE FROM RentalUnit;
 DELETE FROM Storefront;
 DELETE FROM CustomerAddress;
 DELETE FROM CustomerMembership;
+DELETE FROM RentalUnit;
+DELETE FROM RentalContract;
+DELETE FROM ContractUnit;
+DELETE FROM Membership;
+DELETE FROM CustomerMembership;
+DELETE FROM RetailSale;
+DELETE FROM ProductSale;
+DELETE FROM Discount;
+DELETE FROM SaleDiscount;
+DELETE FROM Ticket;
+DELETE FROM Part;
+DELETE FROM TicketPart;
+DELETE FROM UnitPart;
