@@ -1,3 +1,13 @@
+/*
+ REQUIRED TRIGGERS
+ 1. DONE + update protection
+ 2. DONE
+ 3.
+ 4.
+ 5.
+
+ NOT REQUIRED TRIGGERS
+ */
 CREATE TRIGGER prevent_rental_overlap -- insert protection
 BEFORE INSERT ON ContractUnit
 FOR EACH ROW
