@@ -3,8 +3,8 @@
  1. DONE + update protection
  2. DONE
  3. DONE
- 4.
- 5.
+ 4. DONE
+ 5. DONE
 
  NOT REQUIRED TRIGGERS
  1. Storefront_Manager_Trigger -- Storefront must ALWAYS have a manager
@@ -78,16 +78,13 @@ END;
 
 
 -- Trigger 4
+DROP TRIGGER IF EXISTS auto_logging;
 CREATE TRIGGER auto_logging
 AFTER UPDATE ON RentalContract
 FOR EACH ROW
 BEGIN
-    INSERT INTO AuditLog(contactId, oldStatus, newStatus, "timestamp")      -- Timestamp is in quotes here cause it is a keyword
-    VALUES(OLD.id, OLD.status, NEW.status, datetime('now'));
-
-    UPDATE RentalContract
-    SET lastUpdated = datetime('now')
-        WHERE id = NEW.id;
+    INSERT INTO AuditLog(valueId, tableName, oldValue, newValue, time)      -- Timestamp is in quotes here cause it is a keyword
+    VALUES(OLD.contractId, 'RentalContract',OLD.isActive, NEW.isActive, datetime('now'));
 END;
 
 
@@ -98,9 +95,10 @@ AFTER UPDATE ON Ticket      -- Where our repairs are tracked
 FOR EACH ROW
 WHEN NEW.status = 'Complete'
 BEGIN
-
-
-
+    UPDATE Ticket
+    SET completionDate = datetime('now')
+        WHERE ticketId = NEW.ticketId;
+END;
 
 
 
@@ -158,13 +156,8 @@ INSERT INTO RentalUnit(unitId, name, conditionStatus, purchaseDate, modelId, sto
           (302, 'Forklift B', 'Fair', '2024-06-15', 202, 1),
           (303, 'Pallet Jack', 'Good', '2024-07-10', 201, 1);
 
-INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, customerId, employeeId, storeId)
-VALUES
-    (501, '2026-03-01', '2026-03-05', 50, 10, 1001, 1, 1);
-
--- This insert should FAIL if trigger works
-INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, customerId, employeeId, storeId)
-    VALUES (502, '2026-03-03', '2026-03-07', 50, 10, 1002, 1, 1);
+INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, isActive, customerId, employeeId, storeId)
+    VALUES (601, '2026-04-01', '2026-04-05', 50, 10, 1, 1001, 1, 1);
 
 INSERT INTO ContractUnit(contractId, unitId)
     VALUES(501, 301);
@@ -195,7 +188,7 @@ INSERT INTO SaleDiscount(saleId, discountId)
     VALUES(7001, 301);
 
 INSERT INTO Ticket(ticketId, priority, status, labor, billAmount, unitId)
-    VALUES(801, 'High', 'Open', 'Replace hydraulic line', 120, 301);
+    VALUES (901, 'Medium', 'In Progress', 'Replace belt', 75, 301);
 
 INSERT INTO Part(partId, partName, quantity, unitId)
     VALUES(901, 'Hydraulic Hose', 10, 301),
@@ -224,6 +217,17 @@ INSERT INTO CustomerAddress(customerId, zipCode, addressLine1, addressLine2, cit
 -- This insert is supposed to FAIL
 INSERT INTO CustomerMembership(membershipId, customerId, isActive)
     VALUES(8, 1001, 5);
+
+
+ -- UPDATE Statements (used for triggers 4 and 5)
+ UPDATE RentalContract
+    SET isActive = 0
+    WHERE contractId = 601;
+
+UPDATE Ticket
+    SET status = 'Complete'
+    WHERE ticketId = 901;
+
 
 -- Delete Statements (please run these after testing insert statements, or they will not work)
 DELETE FROM RetailProduct;

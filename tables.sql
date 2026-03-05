@@ -580,3 +580,13 @@ CREATE TABLE UnitPart (
 );
 CREATE INDEX idx_unitpart_unit ON UnitPart(unitId);
 
+
+-- AuditLog table (used for trigger 4)
+DROP TABLE IF EXISTS AuditLog;
+CREATE TABLE AuditLog (
+    valueId INTEGER PRIMARY KEY,
+    tableName TEXT NOT NULL,
+    oldValue TEXT NOT NULL,
+    newValue TEXT NOT NULL,
+    time DATETIME
+);
