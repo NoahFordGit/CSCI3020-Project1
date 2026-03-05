@@ -41,3 +41,25 @@ AND EXISTS (
 BEGIN
     SELECT RAISE(ABORT, 'Cannot update contract, there is already an active contract');
 END;
+
+CREATE TRIGGER membership_validation_check
+BEFORE INSERT ON ProductSale
+FOR EACH ROW
+WHEN New.customerId IS NOT NULL -- check if a customer is assigned
+    BEGIN
+         SELECT
+         CASE 
+         WHEN NOT EXISTS( --prevents a situation where a customer might have two active memberships
+         SELECT 1
+         FROM CustomerMembership
+         WHERE customerId = NEW.customerId
+         AND isActive = 1
+         )
+    THEN RAISE(ABORT, "No active membership could be found for this customer");
+    END;
+END;
+
+
+
+
+ 
