@@ -61,14 +61,15 @@ CREATE TRIGGER sale_total_maintainance
 AFTER INSERT ON ProductSale
 FOR EACH ROW
 BEGIN
-   UPDATE
-   SET subtotalAmount (
-   SELECT SUM(ps.quantity * rp.standardPrice) -- Caluclating sum by joining line items with the product prices
-   FROM ProductSale ps
-   JOIN RetailProduct rp --Linking RP that has the price with the PS that has qunatity to allow multiplying
-      ON ps.productSKU = rp.productSKU
+   UPDATE RetailSale
+   SET subtotalAmount = (
+       SELECT IFNULL(SUM(ps.quantity * rp.standardPrice), 0) -- Caluclating sum by joining line items with the product prices, IF NULL PRICE IS ZERO
+       FROM ProductSale ps
+       JOIN RetailProduct rp --Linking RP that has the price with the PS that has qunatity to allow multiplying
+          ON ps.productSKU = rp.productSKU
+        WHERE ps.saleId = NEW.saleId --ensures it only updates the specific RS row that matches the sale
    )
- WHERE ps.saleId = NEW.saleId; --ensures it only updates the specific RS row that matches the sale
+    WHERE saleId = NEW.saleId;
 END;
 
 
@@ -85,9 +86,6 @@ END;
     !!!!!!!!!!!!! TEST CASES START HERE !!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 */
-
-
-
 -- Insert Statements (sample data)
 -- Note all inserts should pass unless stated otherwise
 
@@ -101,12 +99,10 @@ INSERT INTO RetailProduct(productSKU, name, brand, category, standardPrice, taxS
             (10000007, 'Thermal Gloves', 'Dewalt', 'Workwear', 7.99, 'Exempt', 'Active'),
             (10000008, 'Welding Gloves', 'Dewalt', 'Workwaer', 39.99, 'Exempt', 'Active');
 
-
 INSERT INTO Customer(customerId,creationDate)
     VALUES(1001,'2025-03-01 14:30:00'),
             (1002,'2025-09-01 14:30:00'),
             (1003,'2025-10-01 14:30:00');
-
 
 INSERT INTO CustomerName(customerId, firstName, lastName)
     VALUES(1001, 'Matthew', 'Desjardins'),
@@ -138,7 +134,6 @@ INSERT INTO RentalUnit(unitId, name, conditionStatus, purchaseDate, modelId, sto
           (302, 'Forklift B', 'Fair', '2024-06-15', 202, 1),
           (303, 'Pallet Jack', 'Good', '2024-07-10', 201, 1);
 
-
 INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, customerId, employeeId, storeId)
 VALUES
     (501, '2026-03-01', '2026-03-05', 50, 10, 1001, 1, 1);
@@ -153,8 +148,6 @@ INSERT INTO ContractUnit(contractId, unitId)
 INSERT INTO Membership(membershipId, membershipName)
     VALUES(1, 'Basic'),
           (2, 'Premium');
-
-
 
 INSERT INTO CustomerMembership(membershipId, customerId, isActive)
     VALUES(1, 1001, 1);
@@ -171,10 +164,8 @@ INSERT INTO ProductSale(saleId, productSKU, quantity)
           (7001, 10000004, 2),
           (7001, 10000007, 1);
 
-
 INSERT INTO Discount(discountId, discountName, discountType)
     VALUES(301, 'Winter Sale', 'Percentage');
-
 
 INSERT INTO SaleDiscount(saleId, discountId)
     VALUES(7001, 301);
@@ -193,8 +184,6 @@ INSERT INTO TicketPart(partId, ticketId, quantity)
 INSERT INTO UnitPart(partId, unitId)
     VALUES(901, 301),
           (902, 301);
-
-
 
 -- This insert is supposed to FAIL
 INSERT INTO Employee(employeeId, storeId, roleId, firstName, lastName, hireDate, hourlyRate, isActive)
