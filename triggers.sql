@@ -100,8 +100,35 @@ BEGIN
         WHERE ticketId = NEW.ticketId;
 END;
 
-
-
+CREATE TRIGGER ensure_storefront_manager -- ensures storefront manager is an employee that has manager role
+BEFORE INSERT ON StoreFront
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'Cannot insert storefront, there is no assigned manager.')
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Employee e
+        JOIN role r
+            ON e.roleId = r.roleId
+        WHERE e.employeeId = NEW.managerId
+        AND r.roleTitle = 'Manager'
+        );
+END;
+END;
+CREATE TRIGGER maintain_storefront_manager -- ensures updated manager is an employee with manager role
+BEFORE UPDATE OF managerId ON Storefront
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'Cannot update storefront, employee is not a manager')
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Employee e
+        JOIN role r
+            ON e.roleId = r.roleId
+        WHERE e.employeeId = NEW.managerId
+        AND r.roleTitle = 'Manager'
+        );
+END;
 
 /*
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
