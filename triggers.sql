@@ -57,7 +57,19 @@ AND NOT EXISTS ( -- prevents a situation where a customer might have two active 
     END;
 END;
 
-
+CREATE TRIGGER sale_total_maintainance
+AFTER INSERT ON ProductSale
+FOR EACH ROW
+BEGIN
+   UPDATE
+   SET subtotalAmount (
+   SELECT SUM(ps.quantity * rp.standardPrice) -- Caluclating sum by joining line items with the product prices
+   FROM ProductSale ps
+   JOIN RetailProduct rp --Linking RP that has the price with the PS that has qunatity to allow multiplying
+      ON ps.productSKU = rp.productSKU
+   )
+ WHERE ps.saleId = NEW.saleId; --ensures it only updates the specific RS row that matches the sale
+END;
 
 
 
