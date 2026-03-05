@@ -42,7 +42,7 @@ BEGIN
     SELECT RAISE(ABORT, 'Cannot update contract, there is already an active contract');
 END;
 
-CREATE TRIGGER membership_validation_check -- insert check membership
+CREATE TRIGGER membership_validation_check -- insert check membership // MODIFIED FROM LAB DOC, MEMBERS CANNOT ASSOCIATE IN A SALE WITHOUT A MEMBERSHIP
 BEFORE INSERT ON RetailSale
 FOR EACH ROW
 WHEN NEW.customerId IS NOT NULL -- check if a customer is assigned
