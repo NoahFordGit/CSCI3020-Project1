@@ -20,14 +20,14 @@
     Customer_Email      X
     Customer_Address    X
     Membership          X
-    Customer_Membership X T
+    Customer_Membership X TX
     Retail_Product      X
     Product_Store       X
     Variant             X
     Vendor              X
     Product_Vendor      X
-    Retail_Sale         X T
-    Product_Sale        X T
+    Retail_Sale         X TX
+    Product_Sale        X
     Product_Return      X
     Discount            X
     Product_Discount    X
@@ -351,7 +351,7 @@ CREATE TABLE ProductSale (
     productSKU INTEGER NOT NULL,
     quantity INTEGER NOT NULL CHECK(quantity > 0),  -- Quantity cannot be zero here
     PRIMARY KEY(saleId, productSKU),
-    FOREIGN KEY(saleId)                             -- Will need a trigger here to update inventory
+    FOREIGN KEY(saleId)
         REFERENCES RetailSale(saleId)
         ON DELETE CASCADE,
     FOREIGN KEY(productSKU)

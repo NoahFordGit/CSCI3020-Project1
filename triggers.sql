@@ -2,11 +2,15 @@
  REQUIRED TRIGGERS
  1. DONE + update protection
  2. DONE
- 3.
+ 3. DONE
  4.
  5.
 
  NOT REQUIRED TRIGGERS
+ 1. Storefront_Manager_Trigger -- Storefront must ALWAYS have a manager
+ 2. Storeshift_Manager_Trigger -- StoreShifts must ALWAYS have a manager
+ 3. Session_Instructor_Trigger -- Session instructors must be an employee of INSTRUCTOR role
+ 4. Transfer_History_Trigger -- FromStoreId and ToStoreId CANNOT be the same storefrontID
  */
 CREATE TRIGGER prevent_rental_overlap -- insert protection
 BEFORE INSERT ON ContractUnit
