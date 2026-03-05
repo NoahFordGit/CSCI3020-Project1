@@ -73,7 +73,27 @@ BEGIN
 END;
 
 
+-- Trigger 4
+CREATE TRIGGER auto_logging
+AFTER UPDATE ON RentalContract
+FOR EACH ROW
+BEGIN
+    INSERT INTO AuditLog(contactId, oldStatus, newStatus, "timestamp")      -- Timestamp is in quotes here cause it is a keyword
+    VALUES(OLD.id, OLD.status, NEW.status, datetime('now'));
 
+    UPDATE RentalContract
+    SET lastUpdated = datetime('now')
+        WHERE id = NEW.id;
+END;
+
+
+-- Trigger 5
+-- NOTE: The ticket table as of starting this trigger does NOT have a completionDate value, so I will be adding one
+CREATE TRIGGER repair_status_automation
+AFTER UPDATE ON Ticket      -- Where our repairs are tracked
+FOR EACH ROW
+WHEN NEW.status = 'Complete'
+BEGIN
 
 
 

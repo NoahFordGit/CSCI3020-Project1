@@ -531,6 +531,7 @@ CREATE TABLE Ticket (
     labor TEXT NOT NULL,
     billAmount INTEGER NOT NULL,
     unitId INTEGER NOT NULL,
+    completionDate DATETIME,        -- Added by OS for trigger 4
     FOREIGN KEY(unitId)
         REFERENCES RentalUnit(unitId)
         ON DELETE CASCADE
