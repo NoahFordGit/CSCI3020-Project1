@@ -83,7 +83,7 @@ CREATE TRIGGER auto_logging
 AFTER UPDATE ON RentalContract
 FOR EACH ROW
 BEGIN
-    INSERT INTO AuditLog(valueId, tableName, oldValue, newValue, time)      -- Timestamp is in quotes here cause it is a keyword
+    INSERT INTO AuditLog(valueId, tableName, oldValue, newValue, time)
     VALUES(OLD.contractId, 'RentalContract',OLD.isActive, NEW.isActive, datetime('now'));
 END;
 
@@ -138,6 +138,16 @@ END;
 -- Insert Statements (sample data)
 -- Note all inserts should pass unless stated otherwise
 
+/*
+ Test cases by trigger:
+    TRIGGER 1: Run RentalContract, ContractUnit
+    TRIGGER 2: Run RentalContract, Update statement (see below)
+    TRIGGER 3: Run RetailProduct, Customer (all tables), Membership, CustomerMembership, RetailSale
+    TRIGGER 4: Run RentalContract, Update statement (see below)
+    TRIGGER 5: Run Ticket, Part, UnitPart, TicketPart, and Update statement (see below)
+ */
+
+
 INSERT INTO RetailProduct(productSKU, name, brand, category, standardPrice, taxStatus, activeStatus)
     VALUES(10000001, 'Toolbox', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active'),
             (10000002, 'Toolbox Red', 'Craftsman', 'Hardware', 19.99, 'Exempt', 'Active'),
@@ -184,52 +194,82 @@ INSERT INTO RentalUnit(unitId, name, conditionStatus, purchaseDate, modelId, sto
           (303, 'Pallet Jack', 'Good', '2024-07-10', 201, 1);
 
 INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, isActive, customerId, employeeId, storeId)
-    VALUES (601, '2026-04-01', '2026-04-05', 50, 10, 1, 1001, 1, 1);
+    VALUES(601, '2026-04-01', '2026-04-05', 50, 10, 1, 1001, 1, 1),
+          (602, '2026-04-10', '2026-04-15', 40, 10, 1, 1002, 1, 1),
+          (603, '2026-04-12', '2026-04-20', 40, 10, 1, 1003, 1, 1);
+
+-- This insert is set up to cause a FAIL later on for trigger 2 (should still pass, see update statement below)
+INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, isActive, customerId, employeeId, storeId)
+VALUES (604, '2026-05-01', '2026-05-05', 50, 10, 0, 1001, 1, 1);
+
 
 INSERT INTO ContractUnit(contractId, unitId)
-    VALUES(501, 301);
+    VALUES(601, 301),
+          (602, 302);
+
+-- This insert is supposed to FAIL per trigger 1
+INSERT INTO ContractUnit(contractId, unitId)
+    VALUES (603, 302);
+
 
 INSERT INTO Membership(membershipId, membershipName)
     VALUES(1, 'Basic'),
           (2, 'Premium');
 
 INSERT INTO CustomerMembership(membershipId, customerId, isActive)
-    VALUES(1, 1001, 1);
+    VALUES(1, 1001, 1),
+          (2, 1002, 1);
 
--- This insert should FAIL if trigger works
-INSERT INTO CustomerMembership(membershipId, customerId, isActive)
-    VALUES(2, 1001, 1);
+-- This insert is supposed to FAIL per trigger 3
+INSERT INTO CustomerMembership
+    VALUES (1, 1002, 1);
+
+-- This insert is set up to cause a FAIL later on for trigger 3 (should still pass, see update statement below)
+INSERT INTO CustomerMembership
+    VALUES (1, 1003, 0);
+
 
 INSERT INTO RetailSale(saleId, saleDate, taxAmount, subtotalAmount, customerId, storefrontId, employeeId)
-    VALUES(7001, '2026-02-15 10:00:00', 2.50, 25.00, 1001, 1, 1);
+    VALUES(7002, '2026-03-01 11:00:00', 3.50, 0, 1002, 1, 1);
+
+-- This insert is supposed to FAIL per trigger 3
+INSERT INTO RetailSale(saleId, saleDate, taxAmount, subtotalAmount, customerId, storefrontId, employeeId)
+    VALUES (7003, '2026-03-02 09:00:00', 1.50, 10.00, 1003, 1, 1);
+
 
 INSERT INTO ProductSale(saleId, productSKU, quantity)
-    VALUES(7001, 10000001, 1),
-          (7001, 10000004, 2),
-          (7001, 10000007, 1);
+    VALUES (7002, 10000001, 1),
+           (7002, 10000004, 3),
+           (7002, 10000005, 2),
+           (7002, 10000007, 1);
+
 
 INSERT INTO Discount(discountId, discountName, discountType)
     VALUES(301, 'Winter Sale', 'Percentage');
 
 INSERT INTO SaleDiscount(saleId, discountId)
-    VALUES(7001, 301);
+    VALUES(7002, 301);
 
 INSERT INTO Ticket(ticketId, priority, status, labor, billAmount, unitId)
-    VALUES (901, 'Medium', 'In Progress', 'Replace belt', 75, 301);
+    VALUES (901, 'Medium', 'In Progress', 'Replace belt', 75, 301),
+           (902, 'High', 'Open', 'Replace wheel bearings', 150, 303);
+
 
 INSERT INTO Part(partId, partName, quantity, unitId)
-    VALUES(901, 'Hydraulic Hose', 10, 301),
-          (902, 'Hydraulic Fluid', 5, 301);
+    VALUES(903, 'Wheel Bearing', 4, 303),
+          (904, 'Lubricant', 2, 303);
+
 
 INSERT INTO TicketPart(partId, ticketId, quantity)
-    VALUES(901, 801, 1),
-          (902, 801, 2);
+    VALUES(903, 902, 2),
+          (904, 902, 1);
+
 
 INSERT INTO UnitPart(partId, unitId)
-    VALUES(901, 301),
-          (902, 301);
+    VALUES(903, 303),
+          (904, 303);
 
--- This insert is supposed to FAIL
+-- This insert is supposed to FAIL (constraint testing, non-trigger)
 INSERT INTO Employee(employeeId, storeId, roleId, firstName, lastName, hireDate, hourlyRate, isActive)
     VALUES(000123456, NULL, 3, 'Steve', 'Rogers', '2026-02-01 14:30:00', 12.00, NULL);
 -- This insert is supposed to FAIL
@@ -246,14 +286,23 @@ INSERT INTO CustomerMembership(membershipId, customerId, isActive)
     VALUES(8, 1001, 5);
 
 
- -- UPDATE Statements (used for triggers 4 and 5)
+ -- UPDATE Statements
+
+ -- This update will FAIL via trigger 2
+ UPDATE RentalContract
+    SET isActive = 1
+    WHERE contractId = 604;
+
+-- Used to test trigger 4 (should PASS)
  UPDATE RentalContract
     SET isActive = 0
     WHERE contractId = 601;
 
+-- Used to test trigger 5 (should PASS)
 UPDATE Ticket
     SET status = 'Complete'
-    WHERE ticketId = 901;
+    WHERE ticketId = 902;
+
 
 
 -- Delete Statements (please run these after testing insert statements, or they will not work)
@@ -282,5 +331,3 @@ DELETE FROM Ticket;
 DELETE FROM Part;
 DELETE FROM TicketPart;
 DELETE FROM UnitPart;
-
-
