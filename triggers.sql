@@ -115,6 +115,7 @@ BEGIN
         );
 END;
 END;
+
 CREATE TRIGGER maintain_storefront_manager -- ensures updated manager is an employee with manager role
 BEFORE UPDATE OF managerId ON Storefront
 FOR EACH ROW
