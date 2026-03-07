@@ -497,6 +497,7 @@ CREATE INDEX idx_rentalcontract_store ON RentalContract(storeId);
 CREATE INDEX idx_rentalcontract_startdate ON RentalContract(startDate);
 CREATE INDEX idx_rentalcontract_expectedreturn ON RentalContract(expectedReturnDate);
 CREATE INDEX idx_rentalcontract_isactive ON RentalContract(isActive);
+CREATE INDEX idx_rentalcontract_isactive_id ON RentalContract(isActive, contractId);
 
 -- ContractExtension table
 DROP TABLE IF EXISTS ContractExtension;
@@ -584,13 +585,16 @@ CREATE TABLE UnitPart (
 );
 CREATE INDEX idx_unitpart_unit ON UnitPart(unitId);
 
-
 -- AuditLog table (used for trigger 4)
 DROP TABLE IF EXISTS AuditLog;
 CREATE TABLE AuditLog (
-    valueId INTEGER PRIMARY KEY,
+    auditId INTEGER PRIMARY KEY,
+    contractId INTEGER NOT NULL,
     tableName TEXT NOT NULL,
     oldValue TEXT NOT NULL,
     newValue TEXT NOT NULL,
-    time DATETIME
+    time DATETIME,
+    FOREIGN KEY(contractId)
+        REFERENCES RentalContract(contractId)
+        ON DELETE CASCADE
 );
