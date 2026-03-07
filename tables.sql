@@ -95,10 +95,14 @@ DROP TABLE IF EXISTS Storeshift;
 CREATE TABLE Storeshift (
     shiftId INTEGER PRIMARY KEY, -- TRIGGER TO MAKE SURE THERE IS A MANAGER A IS WORKING AT ALL TIMES
     employeeId INTEGER NOT NULL,
+    managerID INTEGER NOT NULL,
     storeId INTEGER NOT NULL,
     shiftStart DATETIME NOT NULL,
     shiftEnd DATETIME NOT NULL,
     FOREIGN KEY (employeeId)
+        REFERENCES Employee(employeeId)
+        ON DELETE CASCADE,
+    FOREIGN KEY (managerID)
         REFERENCES Employee(employeeId)
         ON DELETE CASCADE,
     FOREIGN KEY (storeId)
