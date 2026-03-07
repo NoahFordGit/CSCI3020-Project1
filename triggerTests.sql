@@ -20,9 +20,11 @@ UPDATE Employee SET storeId = 1 WHERE employeeId = 100;
 INSERT INTO Employee VALUES (101,1,1,'Bob','Sales',datetime('now'),15,1);
 INSERT INTO Employee VALUES (102,1,3,'Carol','Instructor',datetime('now'),20,1);
 
+INSERT INTO RentalModel VALUES (1,'Bike');
+INSERT INTO RentalUnit VALUES (1,'UnitA','Good',datetime('now'),1,1);
 
 /* =========================================================
-1️⃣ ensure_storefront_manager (VALID + INVALID)
+ 1. ensure_storefront_manager (VALID + INVALID)
 ========================================================= */
 
 -- VALID (employee 100 is manager)
@@ -33,7 +35,7 @@ INSERT INTO Storefront VALUES (3,101,'789 Fail St','5553333');
 
 
 /* =========================================================
-2️⃣ maintain_storefront_manager
+ 2. maintain_storefront_manager
 ========================================================= */
 
 -- INVALID update (sales employee cannot become manager)
@@ -43,7 +45,7 @@ WHERE storefrontId = 2;
 
 
 /* =========================================================
-3️⃣ session_instructor_validation
+ 3. session_instructor_validation
 ========================================================= */
 
 INSERT INTO TrainingCourse VALUES (1,'Bike Safety','Basic training');
@@ -57,7 +59,7 @@ INSERT INTO SessionInstructor VALUES (1,101);
 
 
 /* =========================================================
-4️⃣ maintain_session_instructor_validation
+ 4. maintain_session_instructor_validation
 ========================================================= */
 
 -- INVALID update (changing instructor to non-instructor)
@@ -67,7 +69,7 @@ WHERE sessionId = 1 AND instructorId = 102;
 
 
 /* =========================================================
-5️⃣ membership_validation_check
+ 5. membership_validation_check
 ========================================================= */
 
 INSERT INTO Customer VALUES (1,datetime('now'));
@@ -88,7 +90,7 @@ VALUES (2,datetime('now'),2,10,2,1,101);
 
 
 /* =========================================================
-6️⃣ sale_total_maintainance
+ 6. sale_total_maintainance
 ========================================================= */
 
 INSERT INTO RetailProduct VALUES (1,'Helmet','BrandX','Safety',50,'Non-exempt','Active');
@@ -101,44 +103,37 @@ SELECT saleId, subtotalAmount FROM RetailSale;
 
 
 /* =========================================================
-7️⃣ prevent_rental_overlap
+ 7. prevent_rental_overlap
 ========================================================= */
 
-INSERT INTO RentalModel VALUES (1,'Bike');
+-- Existing ACTIVE contract
+INSERT INTO RentalContract VALUES (1, datetime('now'), datetime('now','+7 day'), 100, 10, 1, 1, 101, 1);
+INSERT INTO ContractUnit VALUES (1, 1); -- matches RentalContract 1
 
-INSERT INTO RentalUnit
-VALUES (1,'UnitA','Good',datetime('now'),1,1);
-
-INSERT INTO RentalContract
-VALUES (1,datetime('now'),datetime('now','+7 day'),100,10,1,1,101,1);
-
-INSERT INTO ContractUnit VALUES (1,1);
-
--- INVALID: second active contract for same unit
-INSERT INTO RentalContract
-VALUES (2,datetime('now'),datetime('now','+7 day'),100,10,1,1,101,1);
-
-INSERT INTO ContractUnit VALUES (2,1);
+-- Attempt INVALID: second ACTIVE contract for same unit
+INSERT INTO RentalContract VALUES (2, datetime('now'), datetime('now','+7 day'), 100, 10, 1, 1, 101, 1);
+-- This line will ABORT due to prevent_rental_overlap
+INSERT INTO ContractUnit VALUES (2, 1);
 
 
 /* =========================================================
-8️⃣ prevent_activation_overlap
+ 8. prevent_activation_overlap
 ========================================================= */
 
--- Create inactive contract
-INSERT INTO RentalContract
-VALUES (3,datetime('now'),datetime('now','+7 day'),100,10,0,1,101,1);
+-- Existing active contract (already inserted above: contractId 1)
 
-INSERT INTO ContractUnit VALUES (3,1);
+-- Create NEW inactive contract
+INSERT INTO RentalContract VALUES (3, datetime('now'), datetime('now','+7 day'), 100, 10, 0, 1, 101, 1);
+INSERT INTO ContractUnit VALUES (3, 1);
 
 -- INVALID activation (unit already active elsewhere)
 UPDATE RentalContract
 SET isActive = 1
-WHERE contractId = 3;
+WHERE contractId = 3; -- Should ABORT via prevent_activation_overlap
 
 
 /* =========================================================
-9️⃣ same_transfer_locations_prevention
+ 9. same_transfer_locations_prevention
 ========================================================= */
 
 -- INVALID transfer (same store)
@@ -147,7 +142,7 @@ VALUES (1,datetime('now'),1,1,1);
 
 
 /* =========================================================
-🔟 same_transfer_locations_security
+ 10. same_transfer_locations_security
 ========================================================= */
 
 INSERT INTO TransferHistory
@@ -160,7 +155,7 @@ WHERE transferId = 2;
 
 
 /* =========================================================
-1️⃣1️⃣ repair_status_automation
+ 11. repair_status_automation
 ========================================================= */
 
 INSERT INTO Ticket
@@ -175,7 +170,7 @@ SELECT ticketId,status,completionDate FROM Ticket;
 
 
 /* =========================================================
-1️⃣2️⃣ auto_logging
+ 12. auto_logging
 ========================================================= */
 
 UPDATE RentalContract
@@ -187,10 +182,51 @@ SELECT * FROM AuditLog;
 
 
 /* =========================================================
-1️⃣3️⃣ auto_logging_security
+ 13. auto_logging_security
 ========================================================= */
 
 -- INVALID modification of log
 UPDATE AuditLog
 SET newValue = '999'
-WHERE valueId = 1;
+WHERE oldValue = 1;
+
+/* =========================================================
+   TRIGGER PERFORMANCE ANALYSIS
+   PREVENT_RENTAL_OVERLAP -- Required Trigger #1
+========================================================= */
+EXPLAIN QUERY PLAN
+SELECT 1 -- find all instances
+    FROM ContractUnit cu
+    JOIN RentalContract rc
+        ON cu.contractId = rc.contractId
+    JOIN RentalContract new_rc
+        ON new_rc.contractId = 1 -- equals ONE in place of NEW.contractId
+    WHERE cu.unitId = 1          -- equals ONE in place of NEW.unitId
+    AND rc.isActive = 1
+    AND new_rc.isActive = 1;
+
+
+-- Optional: disable foreign key enforcement temporarily (SQLite)
+PRAGMA foreign_keys = OFF;
+
+DELETE FROM AuditLog;
+DELETE FROM ProductSale;
+DELETE FROM ContractUnit;
+DELETE FROM TransferHistory;
+DELETE FROM Ticket;
+DELETE FROM SessionInstructor;
+DELETE FROM CourseSession;
+DELETE FROM TrainingCourse;
+DELETE FROM CustomerMembership;
+DELETE FROM Membership;
+DELETE FROM RetailSale;
+DELETE FROM RentalContract;
+DELETE FROM RentalUnit;
+DELETE FROM RentalModel;
+DELETE FROM RetailProduct;
+DELETE FROM Customer;
+DELETE FROM Employee;
+DELETE FROM Storefront;
+DELETE FROM Role;
+
+PRAGMA foreign_keys = ON;
