@@ -221,6 +221,10 @@ INSERT INTO RentalUnit(unitId, name, conditionStatus, purchaseDate, modelId, sto
           (302, 'Forklift B', 'Fair', '2024-06-15', 202, 1),
           (303, 'Pallet Jack', 'Good', '2024-07-10', 201, 1);
 
+-- This insert is set up to cause a FAIL due to (NOT REQUIRED) trigger 4
+INSERT INTO TransferHistory (unitId, fromStoreId, toStoreID, transferDate)
+    VALUES(99, 10, 10, '2026-03-06');
+
 INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, isActive, customerId, employeeId, storeId)
     VALUES(601, '2026-04-01', '2026-04-05', 50, 10, 1, 1001, 1, 1),
           (602, '2026-04-10', '2026-04-15', 40, 10, 1, 1002, 1, 1),
@@ -271,6 +275,12 @@ INSERT INTO ProductSale(saleId, productSKU, quantity)
            (7002, 10000005, 2),
            (7002, 10000007, 1);
 
+INSERT INTO Employee (employeeId, roleId, firstName, lastName, hireDate, hourlyRate)
+    VALUES(000654321, 2, 'Tie', 'Fighter', '2026-04-06', 20.00);
+
+--This insert is supposed to fail due to (NOT REQUIRED) trigger 3 due to employee having a "sales role"
+INSERT INTO SessionInstructor (sessionId, instructorId)
+    VALUES(500, 000654321);
 
 INSERT INTO Discount(discountId, discountName, discountType)
     VALUES(301, 'Winter Sale', 'Percentage');
