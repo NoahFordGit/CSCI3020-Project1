@@ -21,8 +21,11 @@ WHEN EXISTS (
     FROM ContractUnit cu
     JOIN RentalContract rc
         ON cu.contractId = rc.contractId -- Join ContractUnit and RentalContract to get isActive field
+    JOIN RentalContract new_rc
+        ON new_rc.contractId = NEW.contractId
     WHERE cu.unitId = NEW.unitId                  -- Where our NEW unit exits in ContractUnit
     AND rc.isActive = 1                           -- AND our contract is active
+    AND new_rc.isActive = 1
 ) -- Prevents a unit being double booked by an active contract, by checking if the Contract a unit is tied to is active
 BEGIN
     SELECT RAISE(ABORT, 'Cannot insert contract, there is already an active contract');
@@ -35,14 +38,14 @@ FOR EACH ROW
 WHEN NEW.isActive = 1 -- if updating to be active
 AND EXISTS (
     SELECT 1 -- find all instances
-    FROM ContractUnit cu1
-    JOIN ContractUnit cu2
-        ON cu1.unitId = cu2.unitId -- Find all rows with the same Unit
+    FROM ContractUnit cu
     JOIN RentalContract rc
-        ON cu2.contractId = rc.contractId
-    WHERE cu1.contractId = NEW.contractId
+        ON cu.contractId = rc.contractId
+    WHERE cu.contractId IN (
+        SELECT unitId FROM ContractUnit WHERE contractId = NEW.contractId
+    )
     AND rc.isActive = 1
-    AND cu1.contractId != cu2.contractId -- Eliminates matching the same row
+    AND rc.contractId != NEW.contractId -- Eliminates matching the same row
     )
 BEGIN
     SELECT RAISE(ABORT, 'Cannot update contract, there is already an active contract');
@@ -81,17 +84,17 @@ END;
 
 
 -- Trigger 4
-DROP TRIGGER IF EXISTS auto_logging;
-CREATE TRIGGER auto_logging
+DROP TRIGGER IF EXISTS audit_logging;
+CREATE TRIGGER audit_logging
 AFTER UPDATE ON RentalContract
 FOR EACH ROW
 BEGIN
-    INSERT INTO AuditLog(valueId, tableName, oldValue, newValue, time)
+    INSERT INTO AuditLog(contractId, tableName, oldValue, newValue, time)
     VALUES(OLD.contractId, 'RentalContract',OLD.isActive, NEW.isActive, datetime('now'));
 END;
 
-DROP TRIGGER IF EXISTS auto_logging_security;
-CREATE TRIGGER auto_logging_security
+DROP TRIGGER IF EXISTS audit_logging_security;
+CREATE TRIGGER audit_logging_security
 BEFORE UPDATE ON AuditLog
 BEGIN
     SELECT RAISE(ABORT, 'Audit logs cannot be updated');
