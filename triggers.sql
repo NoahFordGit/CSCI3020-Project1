@@ -58,7 +58,7 @@ AND NOT EXISTS ( -- prevents a situation where a customer might have two active 
     )
     BEGIN
         RAISE(ABORT, 'No active membership could be found for this customer');
-END;
+    END;
 END;
 
 CREATE TRIGGER sale_total_maintainance
@@ -115,7 +115,6 @@ BEGIN
         );
 END;
 END;
-
 CREATE TRIGGER maintain_storefront_manager -- ensures updated manager is an employee with manager role
 BEFORE UPDATE OF managerId ON Storefront
 FOR EACH ROW
@@ -130,33 +129,6 @@ BEGIN
         AND r.roleTitle = 'Manager'
         );
 END;
-
-CREATE TRIGGER session_instructor_validation --checks that a session instructor is an employee with role of instructor
-BEFORE INSERT ON SessionInstructor
-FOR EACH ROW
-BEGIN
-    SELECT
-    CASE 
-    WHEN ( 
-    SELECT r.roleTitle
-    FROM Employee e
-    JOIN Role r ON e.roleId = r.roleId
-    WHERE e.employeeId = NEW.instructor 
-    ) != 'instructor' THEN RAISE(ABORT, 'The selected employee does not have a instrustor role, cannot be selected as session instructor.')
-END;
-END;
-
-CREATE TRIGGER same_transfer_locations_prevention -- Prevents tranfers where the origin and destination storefronts are the same
-BEFORE INSERT ON TransferHistory
-FOR EACH ROW
-BEGIN
-    SELECT
-    CASE
-    WHEN NEW.fromStoreId = new.toStoreId 
-    THEN RAISE(ABORT, 'Cannot tranfer items with origin and destination stores being the same.')
-END;
-END;
-
 
 /*
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -221,10 +193,6 @@ INSERT INTO RentalUnit(unitId, name, conditionStatus, purchaseDate, modelId, sto
           (302, 'Forklift B', 'Fair', '2024-06-15', 202, 1),
           (303, 'Pallet Jack', 'Good', '2024-07-10', 201, 1);
 
--- This insert is set up to cause a FAIL due to (NOT REQUIRED) trigger 4
-INSERT INTO TransferHistory (unitId, fromStoreId, toStoreID, transferDate)
-    VALUES(99, 10, 10, '2026-03-06');
-
 INSERT INTO RentalContract(contractId, startDate, expectedReturnDate, depositAmount, lateFee, isActive, customerId, employeeId, storeId)
     VALUES(601, '2026-04-01', '2026-04-05', 50, 10, 1, 1001, 1, 1),
           (602, '2026-04-10', '2026-04-15', 40, 10, 1, 1002, 1, 1),
@@ -275,12 +243,6 @@ INSERT INTO ProductSale(saleId, productSKU, quantity)
            (7002, 10000005, 2),
            (7002, 10000007, 1);
 
-INSERT INTO Employee (employeeId, roleId, firstName, lastName, hireDate, hourlyRate)
-    VALUES(000654321, 2, 'Tie', 'Fighter', '2026-04-06', 20.00);
-
---This insert is supposed to fail due to (NOT REQUIRED) trigger 3 due to employee having a "sales role"
-INSERT INTO SessionInstructor (sessionId, instructorId)
-    VALUES(500, 000654321);
 
 INSERT INTO Discount(discountId, discountName, discountType)
     VALUES(301, 'Winter Sale', 'Percentage');
