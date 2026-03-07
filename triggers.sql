@@ -58,7 +58,7 @@ AND NOT EXISTS ( -- prevents a situation where a customer might have two active 
     )
     BEGIN
         RAISE(ABORT, 'No active membership could be found for this customer');
-    END;
+END;
 END;
 
 CREATE TRIGGER sale_total_maintainance
@@ -129,6 +129,33 @@ BEGIN
         AND r.roleTitle = 'Manager'
         );
 END;
+
+CREATE TRIGGER session_instructor_validation --checks that a session instructor is an employee with role of instructor
+BEFORE INSERT ON SessionInstructor
+FOR EACH ROW
+BEGIN
+    SELECT
+    CASE 
+    WHEN ( 
+    SELECT r.roleTitle
+    FROM Employee e
+    JOIN Role r ON e.roleId = r.roleId
+    WHERE e.employeeId = NEW.instructor 
+    ) != 'instructor' THEN RAISE(ABORT, 'The selected employee does not have a instrustor role, cannot be selected as session instructor.')
+END;
+END;
+
+CREATE TRIGGER same_transfer_locations_prevention -- Prevents tranfers where the origin and destination storefronts are the same
+BEFORE INSERT ON TransferHistory
+FOR EACH ROW
+BEGIN
+    SELECT
+    CASE
+    WHEN NEW.fromStoreId = new.toStoreId 
+    THEN RAISE(ABORT, 'Cannot tranfer items with origin and destination stores being the same.')
+END;
+END;
+
 
 /*
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
