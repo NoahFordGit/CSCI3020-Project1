@@ -1,35 +1,52 @@
-# CSCI 3020 – Project One
+# CSCI 3020 – Project One  
 ## Physical Database Implementation (SQLite)
 
-This project is a physical SQLite implementation of a complex business database created for ETSU's **Advanced Database Topics** course. The database models a detailed business narrative using 37 relational entities and demonstrates proper relational design, schema creation, Trigger Design, Query Optimization, and data organization.
+This repository contains the physical implementation of a relational database system developed for **CSCI 3020 – Advanced Database Topics at East Tennessee State University**.
+
+The project models **Appalachian Outfitters**, a fictional outdoor equipment rental and retail business. The database demonstrates relational schema design, trigger-based validation, auditing, and query optimization using SQLite.
+
+---
+
+## Features
+
+- **Normalized Relational Schema**  
+  Implements a structured relational database with 37 entities representing customers, memberships, rental contracts, equipment units, inventory, and transactions.
+
+- **SQL Schema Implementation**  
+  Tables, relationships, and constraints are defined using SQL scripts to enforce relational integrity.
+
+- **Trigger-Based Validation**  
+  Triggers enforce business rules such as preventing overlapping rental contracts for the same equipment unit and validating contract activation logic.
+
+- **Audit Logging**  
+  A trigger records updates to contract activity, storing previous values, new values, and timestamps for change tracking.
+
+- **Trigger Testing**  
+  Dedicated SQL test cases validate trigger behavior and confirm that business rules are enforced correctly.
+
+- **Query Optimization**  
+  Validation queries were analyzed using `EXPLAIN QUERY PLAN`, and indexes were used to improve performance and avoid unnecessary table scans.
+
+---
 
 ## Repository Contents
 
-- `schema.sqlite` – Database schema definition  
-- `appalachian_outfitters.sqlite` – Fully implemented SQLite database  
-- `teamteamLab2.sql` – SQL script for creating and populating the database  
+| File | Description |
+|-----|-------------|
+| `appalachian_outfitters.sqlite` | Fully implemented SQLite database containing schema, triggers, and test data |
+| `schema.sqlite` | Initial schema creation file |
+| `tables.sql` | SQL definitions for database tables and constraints |
+| `triggers.sql` | Trigger implementations enforcing business rules |
+| `triggerTests.sql` | Test cases for validating triggers and analyzing query performance |
+| `README.md` | Project documentation |
 
-## Project Objectives
-
-- Design a normalized relational database  
-- Implement entity and relationship modeling  
-- Create and enforce schema constraints  
-- Populate the database using SQL scripts  
-- Demonstrate physical database implementation using SQLite  
-
-## Technologies Used
-
-- SQLite  
-- SQL  
-- Relational Database Design  
+---
 
 ## Authors
 
 - Noah Ford  
 - Olivia Smith  
-- Vanay Rowell 
-
-## Course Information
+- Vanay Rowell  
 
 **CSCI 3020 – Advanced Database Topics**  
 East Tennessee State University
