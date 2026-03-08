@@ -1,7 +1,7 @@
 # CSCI 3020 – Project One
 ## Physical Database Implementation (SQLite)
 
-This project is a physical SQLite implementation of a complex business database created for ETSU's **Advanced Database Topics** course. The database models a detailed business narrative using 37 relational entities and demonstrates proper relational design, schema creation, and data organization.
+This project is a physical SQLite implementation of a complex business database created for ETSU's **Advanced Database Topics** course. The database models a detailed business narrative using 37 relational entities and demonstrates proper relational design, schema creation, Trigger Design, Query Optimization, and data organization.
 
 ## Repository Contents
 
