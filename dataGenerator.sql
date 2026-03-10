@@ -192,17 +192,20 @@ FROM counter;
 ------------------------------------------------
 -- CONTRACT UNITS (200)
 ------------------------------------------------
--- Loop-safe approach using a CTE
-WITH active_contracts AS (
-    SELECT rc.contractId, ru.unitId
+INSERT INTO ContractUnit (contractId, unitId)
+WITH paired AS (
+    SELECT
+        rc.contractId,
+        ru.unitId,
+        ROW_NUMBER() OVER (PARTITION BY ru.unitId ORDER BY RANDOM()) AS unit_rank
     FROM RentalContract rc
     JOIN RentalUnit ru
         ON ru.storefrontId = rc.storeId
     WHERE rc.isActive = 1
-    ORDER BY RANDOM()
 )
 SELECT contractId, unitId
-FROM active_contracts
+FROM paired
+WHERE unit_rank = 1
 LIMIT 200;
 
 ------------------------------------------------

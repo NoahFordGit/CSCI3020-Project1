@@ -43,7 +43,7 @@ AND NOT EXISTS (
     FROM RetailSale rs
     WHERE rs.customerId = c.customerId
     AND rs.saleDate >= DATE('now', '-60 days')
-)
+);
 /*
  PLAN RETURNS:
          SEARCH cm USING COVERING INDEX idx_customermembership_isactive_customerid (isActive=?)
@@ -56,6 +56,55 @@ AND NOT EXISTS (
 
  /*
  ** NEXT QUERY ** (please use this format for all our queries)
+
+ BEFORE OPTIMIZATION
+ */
+
+
+
+ /*
+Active rentals by store with expected return date
+
+ BEFORE OPTIMIZATION
+ */
+EXPLAIN QUERY PLAN
+SELECT
+    r.name AS unitName,
+    rc.storeId,
+    rc.expectedReturnDate
+FROM RentalContract rc
+JOIN ContractUnit cu ON rc.contractId = cu.contractId
+JOIN RentalUnit r ON r.unitId = cu.unitId
+WHERE rc.isActive = 1
+ORDER BY rc.storeId;
+
+/*
+PLAN RETURNS:
+    SCAN rc USING INDEX idx_rentalcontract_store
+    SEARCH cu USING COVERING INDEX sqlite_autoindex_ContractUnit_1 (contractId=?)
+    SEARCH r USING INTEGER PRIMARY KEY (rowid=?)
+
+ AFTER OPTIMIZATION
+ */
+-- Work in progress *NOT FINAL*
+CREATE INDEX idx_rentalcontract_storeid_isactive ON RentalContract(storeId, isActive);
+
+EXPLAIN QUERY PLAN
+SELECT
+    r.name AS unitName,
+    rc.storeId,
+    rc.expectedReturnDate
+FROM RentalContract rc
+JOIN ContractUnit cu ON rc.contractId = cu.contractId
+JOIN RentalUnit r ON r.unitId = cu.unitId
+WHERE rc.isActive = 1
+ORDER BY rc.storeId;
+
+
+
+
+ /*
+Instructors ranked by total enrollments
 
  BEFORE OPTIMIZATION
  */

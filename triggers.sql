@@ -32,23 +32,23 @@ BEGIN
 END;
 
 DROP TRIGGER IF EXISTS prevent_activation_overlap;
-CREATE TRIGGER prevent_activation_overlap -- update protection
-BEFORE UPDATE of isActive on RentalContract
+CREATE TRIGGER prevent_activation_overlap
+BEFORE UPDATE OF isActive ON RentalContract
 FOR EACH ROW
-WHEN NEW.isActive = 1 -- if updating to be active
+WHEN NEW.isActive = 1
 AND EXISTS (
-    SELECT 1 -- find all instances
-    FROM ContractUnit cu
+    SELECT 1
+    FROM ContractUnit cu1
+    JOIN ContractUnit cu2
+        ON cu1.unitId = cu2.unitId
     JOIN RentalContract rc
-        ON cu.contractId = rc.contractId
-    WHERE cu.contractId IN (
-        SELECT unitId FROM ContractUnit WHERE contractId = NEW.contractId
-    )
-    AND rc.isActive = 1
-    AND rc.contractId != NEW.contractId -- Eliminates matching the same row
-    )
+        ON rc.contractId = cu2.contractId
+    WHERE cu1.contractId = NEW.contractId
+      AND rc.isActive = 1
+      AND rc.contractId != NEW.contractId
+)
 BEGIN
-    SELECT RAISE(ABORT, 'Cannot update contract, there is already an active contract');
+    SELECT RAISE(ABORT, 'Cannot update contract, a unit is already rented in another active contract');
 END;
 
 DROP TRIGGER IF EXISTS membership_validation_check;
