@@ -80,17 +80,20 @@ ORDER BY rc.storeId;
 
 /*
 PLAN RETURNS:
-    SCAN rc USING INDEX idx_rentalcontract_store
-    SEARCH cu USING COVERING INDEX sqlite_autoindex_ContractUnit_1 (contractId=?)
+    SCAN cu
+    SEARCH rc USING INTEGER PRIMARY KEY (rowid=?)
     SEARCH r USING INTEGER PRIMARY KEY (rowid=?)
+    USE TEMP B-TREE FOR ORDER BY
+
 
  AFTER OPTIMIZATION
  */
--- Work in progress *NOT FINAL*
-CREATE INDEX idx_rentalcontract_storeid_isactive ON RentalContract(storeId, isActive);
+
+DROP INDEX IF EXISTS idx_rentalcontract_isactive_storeid;
+CREATE INDEX idx_rentalcontract_isactive_storeid ON RentalContract(isActive, storeId);
 
 EXPLAIN QUERY PLAN
-SELECT
+SELECT COUNT(*),
     r.name AS unitName,
     rc.storeId,
     rc.expectedReturnDate
@@ -100,11 +103,13 @@ JOIN RentalUnit r ON r.unitId = cu.unitId
 WHERE rc.isActive = 1
 ORDER BY rc.storeId;
 
+/*
+ PLAN RETURNS:
+    SEARCH rc USING INDEX idx_rentalcontract_isactive_storeid (isActive=?)
+    SEARCH cu USING COVERING INDEX sqlite_autoindex_ContractUnit_1 (contractId=?)
+    SEARCH r USING INTEGER PRIMARY KEY (rowid=?)
 
+USING COMPOSITE INDEX, idx_rentalcontract_isactive_storeid, IT IS MORE EFFECTIVE VIA NO TEMP DATA
 
-
- /*
-Instructors ranked by total enrollments
-
- BEFORE OPTIMIZATION
  */
+
