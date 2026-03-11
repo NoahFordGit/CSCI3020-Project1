@@ -113,3 +113,62 @@ USING COMPOSITE INDEX, idx_rentalcontract_isactive_storeid, IT IS MORE EFFECTIVE
 
  */
 
+
+/*
+ Top customers by total spending in the last 90 days
+
+ BEFORE OPTIMIZATION
+*/
+
+EXPLAIN QUERY PLAN
+SELECT
+    c.customerId,
+    cn.firstName,
+    cn.lastName,
+    SUM(rs.subtotalAmount + rs.taxAmount) AS totalSpending
+FROM Customer c
+JOIN CustomerName cn ON c.customerId = cn.customerId
+JOIN RetailSale rs ON c.customerId = rs.customerId
+WHERE rs.saleDate >= DATE('now', '-90 days')
+GROUP BY c.customerId, cn.firstName, cn.lastName
+ORDER BY totalSpending DESC
+LIMIT 10;
+
+/*
+ PLAN RETURNS:
+      SCAN c
+      SEARCH cn USING COVERING INDEX sqlite_autoindex_CustomerName_1 (customerId=?)
+      SEARCH rs USING INDEX idx_retailsale_customer_date (customerId=? AND saleDate>?)
+      USE TEMP B-TREE FOR ORDER BY
+ AFTER OPTIMIZATION
+ */
+
+DROP INDEX IF EXISTS idx_retailsale_covering_opt;
+CREATE INDEX idx_retailsale_covering_opt ON RetailSale(saleDate, customerId, subtotalAmount, taxAmount);
+
+EXPLAIN QUERY PLAN
+SELECT
+    c.customerId,
+    cn.firstName,
+    cn.lastName,
+    SUM(rs.subtotalAmount + rs.taxAmount) AS totalSpending
+FROM RetailSale rs INDEXED BY idx_retailsale_covering_opt
+JOIN Customer c ON rs.customerId = c.customerId
+JOIN CustomerName cn ON c.customerId = cn.customerId
+WHERE rs.saleDate >= DATE('now', '-90 days')
+GROUP BY c.customerId, cn.firstName, cn.lastName
+ORDER BY totalSpending DESC
+LIMIT 10;
+
+/*
+ PLAN RETURNS:
+    SEARCH rs USING COVERING INDEX idx_retailsale_covering_opt (saleDate>?)
+    SEARCH c USING INTEGER PRIMARY KEY (rowid=?)
+    SEARCH cn USING COVERING INDEX sqlite_autoindex_CustomerName_1 (customerId=?)
+    USE TEMP B-TREE FOR GROUP BY
+    USE TEMP B-TREE FOR ORDER BY
+
+
+USING COMPOSITE INDEX, idx_retailsale_covering_opt, it is more effective as it eliminates a full scan on customer table
+
+ */
