@@ -248,6 +248,33 @@ x,
 (ABS(RANDOM())%2)+1
 FROM counter;
 
+INSERT INTO SessionInstructor(sessionId, instructorId)
+WITH
+    instructors AS (
+        SELECT employeeId
+        FROM Employee
+        WHERE roleId = 4
+    ),
+    sessions AS (
+        SELECT sessionId
+        FROM CourseSession
+    ),
+    combos AS (
+        SELECT
+            s.sessionId,
+            i.employeeId,
+            ROW_NUMBER() OVER (
+                PARTITION BY s.sessionId
+                ORDER BY RANDOM()
+            ) AS rn
+        FROM sessions s
+        CROSS JOIN instructors i
+    )
+SELECT sessionId, employeeId
+FROM combos
+WHERE rn <= 2;
+
+
 ------------------------------------------------
 -- SESSION ENROLLMENTS (200)
 ------------------------------------------------

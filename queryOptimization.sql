@@ -172,3 +172,36 @@ LIMIT 10;
 USING COMPOSITE INDEX, idx_retailsale_covering_opt, it is more effective as it eliminates a full scan on customer table
 
  */
+
+
+
+ /*
+Instructors ranked by total enrollments
+
+ BEFORE OPTIMIZATION
+ */
+-- Work in progress (NOT FINAL)
+EXPLAIN QUERY PLAN
+SELECT
+    e.firstName,
+    e.lastName,
+    COUNT(se.customerId) AS [Enrollment]
+FROM Employee e
+JOIN SessionInstructor si ON e.employeeId = si.instructorId
+JOIN SessionEnroll se ON se.sessionId = si.sessionId
+GROUP BY si.instructorId
+ORDER BY Enrollment DESC;
+
+/*
+PLAN RETURNS:
+    SCAN e
+    SEARCH si USING INDEX idx_sessioninstructor_instructor (instructorId=?)
+    BLOOM FILTER ON se (sessionId=?)
+    SEARCH se USING AUTOMATIC COVERING INDEX (sessionId=?)
+    USE TEMP B-TREE FOR GROUP BY
+    USE TEMP B-TREE FOR ORDER BY
+
+
+ AFTER OPTIMIZATION
+ */
+
