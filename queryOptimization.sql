@@ -180,12 +180,12 @@ Instructors ranked by total enrollments
 
  BEFORE OPTIMIZATION
  */
--- Work in progress (NOT FINAL)
+
 EXPLAIN QUERY PLAN
 SELECT
     e.firstName,
     e.lastName,
-    COUNT(se.customerId) AS [Enrollment]
+    COUNT(se.customerId) AS Enrollment
 FROM Employee e
 JOIN SessionInstructor si ON e.employeeId = si.instructorId
 JOIN SessionEnroll se ON se.sessionId = si.sessionId
@@ -205,3 +205,34 @@ PLAN RETURNS:
  AFTER OPTIMIZATION
  */
 
+EXPLAIN QUERY PLAN
+WITH enrollment_count AS (
+     SELECT si.instructorId,
+            COUNT(se.customerId) AS Enrollment
+     FROM SessionInstructor si
+     JOIN SessionEnroll se ON se.sessionId = si.sessionId
+     GROUP BY si.instructorId
+)
+SELECT
+    e.firstName,
+    e.lastName,
+    ec.Enrollment
+FROM enrollment_count ec
+JOIN Employee e ON e.employeeId = ec.instructorId
+ORDER BY ec.Enrollment DESC;
+
+/*
+ PLAN RETURNS:
+    CO-ROUTINE enrollment_count
+    SCAN si USING INDEX idx_sessioninstructor_instructor
+    BLOOM FILTER ON se (sessionId=?)
+    SEARCH se USING AUTOMATIC COVERING INDEX (sessionId=?)
+    SCAN e
+    BLOOM FILTER ON ec (instructorId=?)
+    SEARCH ec USING AUTOMATIC COVERING INDEX (instructorId=?)
+    USE TEMP B-TREE FOR ORDER BY
+
+
+USING CTE enrollment_count, ENROLLMENT COUNTING IS MORE EFFICIENT AND USES LESS TEMP B-TREES
+
+ */
