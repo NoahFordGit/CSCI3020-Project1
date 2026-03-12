@@ -5,8 +5,6 @@ This repository contains the physical implementation of a relational database sy
 
 The project models **Appalachian Outfitters**, a fictional outdoor equipment rental and retail business. The database demonstrates relational schema design, trigger-based validation, auditing, and query optimization using SQLite.
 
----
-
 ## Features
 
 - **Normalized Relational Schema**  
@@ -27,7 +25,6 @@ The project models **Appalachian Outfitters**, a fictional outdoor equipment ren
 - **Query Optimization**  
   Validation queries were analyzed using `EXPLAIN QUERY PLAN`, and indexes were used to improve performance and avoid unnecessary table scans.
 
----
 
 ## Repository Contents
 
@@ -39,8 +36,6 @@ The project models **Appalachian Outfitters**, a fictional outdoor equipment ren
 | `triggers.sql` | Trigger implementations enforcing business rules |
 | `triggerTests.sql` | Test cases for validating triggers and analyzing query performance |
 | `README.md` | Project documentation |
-
----
 
 ## Authors
 

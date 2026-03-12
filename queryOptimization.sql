@@ -55,14 +55,6 @@ AND NOT EXISTS (
  */
 
  /*
- ** NEXT QUERY ** (please use this format for all our queries)
-
- BEFORE OPTIMIZATION
- */
-
-
-
- /*
 Active rentals by store with expected return date
 
  BEFORE OPTIMIZATION
@@ -231,3 +223,58 @@ ORDER BY Enrollment DESC;
 USING INDEX idx_sessionenroll_session AND HAVING IN GROUP BY, BLOOM FILTER IS REMOVED AND OVERALL MORE EFFECTIVE
 
  */
+
+/*
+ !! CUSTOM PROMPT !! Top Customers by store with more than 5 items purchased
+
+ BEFORE OPTIMIZATION
+ */
+EXPLAIN QUERY PLAN
+SELECT
+    rs.storefrontId,
+    cn.customerId,
+    cn.firstName,
+    cn.lastName,
+    SUM(ps.quantity) AS ItemsPurchased
+FROM CustomerName cn
+JOIN RetailSale rs ON rs.customerId = cn.customerId
+JOIN ProductSale ps ON ps.saleId = rs.saleId
+GROUP BY storefrontId, cn.customerId
+HAVING ItemsPurchased > 5
+ORDER BY rs.storefrontId, ItemsPurchased DESC;
+
+/*
+ PLAN RETURNS:
+    SCAN ps
+    SEARCH rs USING INTEGER PRIMARY KEY (rowid=?)
+    SEARCH cn USING COVERING INDEX sqlite_autoindex_CustomerName_1 (customerId=?)
+    USE TEMP B-TREE FOR GROUP BY
+    USE TEMP B-TREE FOR ORDER BY
+
+ By adding indexes we should be able to remove the scan and reduce B-tree usage
+
+AFTER OPTIMIZATION
+ */
+
+CREATE INDEX idx_productsale_saleid ON ProductSale(saleId);
+CREATE INDEX idx_retailsale_store_customer_sale ON RetailSale(storefrontId, customerId, saleId);
+
+EXPLAIN QUERY PLAN
+WITH ps_sum AS (
+    SELECT saleId, SUM(quantity) as totalQuantity
+    FROM ProductSale
+    GROUP BY saleId
+)
+
+SELECT
+    rs.storefrontId,
+    cn.customerId,
+    cn.firstName,
+    cn.lastName,
+    SUM(ps_sum.totalQuantity) AS ItemsPurchased
+FROM CustomerName cn
+JOIN RetailSale rs ON rs.customerId = cn.customerId
+JOIN ps_sum ON ps_sum.saleId = rs.saleId
+GROUP BY rs.storefrontId, cn.customerId
+HAVING SUM(ps_sum.totalQuantity) > 5
+ORDER BY rs.storefrontId, ItemsPurchased DESC;
