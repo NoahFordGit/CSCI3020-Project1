@@ -190,49 +190,44 @@ FROM Employee e
 JOIN SessionInstructor si ON e.employeeId = si.instructorId
 JOIN SessionEnroll se ON se.sessionId = si.sessionId
 GROUP BY si.instructorId
+HAVING COUNT(se.customerId) > 0
 ORDER BY Enrollment DESC;
 
 /*
 PLAN RETURNS:
-    SCAN e
-    SEARCH si USING INDEX idx_sessioninstructor_instructor (instructorId=?)
+    SCAN si USING INDEX idx_sessioninstructor_instructor
+    SEARCH e USING INTEGER PRIMARY KEY (rowid=?)
     BLOOM FILTER ON se (sessionId=?)
     SEARCH se USING AUTOMATIC COVERING INDEX (sessionId=?)
-    USE TEMP B-TREE FOR GROUP BY
     USE TEMP B-TREE FOR ORDER BY
 
 
  AFTER OPTIMIZATION
  */
 
+DROP INDEX IF EXISTS idx_sessionenroll_session;
+CREATE INDEX idx_sessionenroll_session ON SessionEnroll(sessionId);
+
 EXPLAIN QUERY PLAN
-WITH enrollment_count AS (
-     SELECT si.instructorId,
-            COUNT(se.customerId) AS Enrollment
-     FROM SessionInstructor si
-     JOIN SessionEnroll se ON se.sessionId = si.sessionId
-     GROUP BY si.instructorId
-)
 SELECT
     e.firstName,
     e.lastName,
-    ec.Enrollment
-FROM enrollment_count ec
-JOIN Employee e ON e.employeeId = ec.instructorId
-ORDER BY ec.Enrollment DESC;
+    COUNT(se.customerId) AS Enrollment
+FROM Employee e
+JOIN SessionInstructor si ON e.employeeId = si.instructorId
+JOIN SessionEnroll se ON se.sessionId = si.sessionId
+GROUP BY si.instructorId
+HAVING COUNT(se.customerId) > 0
+ORDER BY Enrollment DESC;
+
 
 /*
  PLAN RETURNS:
-    CO-ROUTINE enrollment_count
     SCAN si USING INDEX idx_sessioninstructor_instructor
-    BLOOM FILTER ON se (sessionId=?)
-    SEARCH se USING AUTOMATIC COVERING INDEX (sessionId=?)
-    SCAN e
-    BLOOM FILTER ON ec (instructorId=?)
-    SEARCH ec USING AUTOMATIC COVERING INDEX (instructorId=?)
+    SEARCH e USING INTEGER PRIMARY KEY (rowid=?)
+    SEARCH se USING INDEX idx_sessionenroll_session (sessionId=?)
     USE TEMP B-TREE FOR ORDER BY
 
-
-USING CTE enrollment_count, ENROLLMENT COUNTING IS MORE EFFICIENT AND USES LESS TEMP B-TREES
+USING INDEX idx_sessionenroll_session AND HAVING IN GROUP BY, BLOOM FILTER IS REMOVED AND OVERALL MORE EFFECTIVE
 
  */
