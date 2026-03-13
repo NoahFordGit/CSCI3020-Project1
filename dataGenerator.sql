@@ -183,7 +183,7 @@ DATE('now','-'||(ABS(RANDOM())%100)||' days'),
 DATE('now','+'||(ABS(RANDOM())%10)||' days'),
 50,
 10,
-1,                       -- active contract must be 1 for trigger checks
+(ABS(RANDOM())%2),   -- random active / inactive
 (ABS(RANDOM())%200)+1,
 (ABS(RANDOM())%21)+1,
 (ABS(RANDOM())%2)+1
@@ -193,20 +193,15 @@ FROM counter;
 -- CONTRACT UNITS (200)
 ------------------------------------------------
 INSERT INTO ContractUnit (contractId, unitId)
-WITH paired AS (
-    SELECT
-        rc.contractId,
-        ru.unitId,
-        ROW_NUMBER() OVER (PARTITION BY ru.unitId ORDER BY RANDOM()) AS unit_rank
-    FROM RentalContract rc
-    JOIN RentalUnit ru
-        ON ru.storefrontId = rc.storeId
-    WHERE rc.isActive = 1
-)
-SELECT contractId, unitId
-FROM paired
-WHERE unit_rank = 1
-LIMIT 200;
+SELECT
+    rc.contractId,
+    ru.unitId
+FROM RentalContract rc
+JOIN RentalUnit ru
+    ON ru.storefrontId = rc.storeId
+WHERE rc.isActive = 0
+ORDER BY RANDOM()
+LIMIT 150;
 
 ------------------------------------------------
 -- TICKETS (200)
