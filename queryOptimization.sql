@@ -55,6 +55,14 @@ AND NOT EXISTS (
  */
 
  /*
+ ** NEXT QUERY ** (please use this format for all our queries)
+
+ BEFORE OPTIMIZATION
+ */
+
+
+
+ /*
 Active rentals by store with expected return date
 
  BEFORE OPTIMIZATION
@@ -224,60 +232,79 @@ USING INDEX idx_sessionenroll_session AND HAVING IN GROUP BY, BLOOM FILTER IS RE
 
  */
 
-/*
- !! CUSTOM PROMPT !! Top Customers by store with more than 5 items purchased
+
+  /*
+Top 10 courses by enrollment numbers
 
  BEFORE OPTIMIZATION
  */
+
 EXPLAIN QUERY PLAN
 SELECT
-    rs.storefrontId,
-    cn.customerId,
-    cn.firstName,
-    cn.lastName,
-    SUM(ps.quantity) AS ItemsPurchased
-FROM CustomerName cn
-JOIN RetailSale rs ON rs.customerId = cn.customerId
-JOIN ProductSale ps ON ps.saleId = rs.saleId
-GROUP BY storefrontId, cn.customerId
-HAVING ItemsPurchased > 5
-ORDER BY rs.storefrontId, ItemsPurchased DESC;
+    tc.courseName,
+    tc.description,
+    (
+        SELECT COUNT(*)
+        FROM SessionEnroll se
+        JOIN CourseSession css ON css.sessionId = se.sessionId
+        WHERE css.courseId = tc.courseId
+        ) AS [Number of Enrolled]
+FROM TrainingCourse tc
+JOIN CourseSession cs ON cs.courseId = tc.courseId
+JOIN SessionEnroll se ON se.sessionId = cs.sessionId
+GROUP BY tc.courseId
+ORDER BY "Number of Enrolled" DESC
+LIMIT 10;
+
+/*
+PLAN RETURNS:
+    SCAN se
+    SEARCH cs USING INTEGER PRIMARY KEY (rowid=?)
+    SEARCH tc USING INTEGER PRIMARY KEY (rowid=?)
+    USE TEMP B-TREE FOR GROUP BY
+    CORRELATED SCALAR SUBQUERY 1
+    SCAN se
+    SEARCH css USING COVERING INDEX idx_coursesession_course (courseId=? AND rowid=?)
+    USE TEMP B-TREE FOR ORDER BY
+
+
+ AFTER OPTIMIZATION
+ */
+
+
+EXPLAIN QUERY PLAN
+SELECT
+    tc.courseName,
+    tc.description,
+    COUNT(se.customerId) AS [Number of Enrolled]
+FROM TrainingCourse tc
+JOIN CourseSession cs ON cs.courseId = tc.courseId
+JOIN SessionEnroll se ON se.sessionId = cs.sessionId
+WHERE EXISTS (
+    SELECT 1
+    FROM CourseSession css
+    WHERE css.sessionId = se.sessionId
+        AND css.courseId = tc.courseId
+)
+GROUP BY tc.courseId
+ORDER BY "Number of Enrolled" DESC
+LIMIT 10;
+
 
 /*
  PLAN RETURNS:
-    SCAN ps
-    SEARCH rs USING INTEGER PRIMARY KEY (rowid=?)
-    SEARCH cn USING COVERING INDEX sqlite_autoindex_CustomerName_1 (customerId=?)
+    SCAN se
+    SEARCH cs USING INTEGER PRIMARY KEY (rowid=?)
+    SEARCH tc USING INTEGER PRIMARY KEY (rowid=?)
+    SEARCH css EXISTS USING COVERING INDEX idx_coursesession_course (courseId=? AND rowid=?)
     USE TEMP B-TREE FOR GROUP BY
     USE TEMP B-TREE FOR ORDER BY
 
- By adding indexes we should be able to remove the scan and reduce B-tree usage
+BY USING COMP INDEX idx_coursesession_sessioncourse AND REWORKING SUBQUERY, SCANS ARE REDUCED AND SEARCHES ARE FASTER
 
-AFTER OPTIMIZATION
  */
 
-CREATE INDEX idx_productsale_saleid ON ProductSale(saleId);
-CREATE INDEX idx_retailsale_store_customer_sale ON RetailSale(storefrontId, customerId, saleId);
 
-EXPLAIN QUERY PLAN
-WITH ps_sum AS (
-    SELECT saleId, SUM(quantity) as totalQuantity
-    FROM ProductSale
-    GROUP BY saleId
-)
-
-SELECT
-    rs.storefrontId,
-    cn.customerId,
-    cn.firstName,
-    cn.lastName,
-    SUM(ps_sum.totalQuantity) AS ItemsPurchased
-FROM CustomerName cn
-JOIN RetailSale rs ON rs.customerId = cn.customerId
-JOIN ps_sum ON ps_sum.saleId = rs.saleId
-GROUP BY rs.storefrontId, cn.customerId
-HAVING SUM(ps_sum.totalQuantity) > 5
-ORDER BY rs.storefrontId, ItemsPurchased DESC;
 
 /*
  Rental units with highest rental frequency
