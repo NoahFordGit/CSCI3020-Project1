@@ -278,3 +278,48 @@ JOIN ps_sum ON ps_sum.saleId = rs.saleId
 GROUP BY rs.storefrontId, cn.customerId
 HAVING SUM(ps_sum.totalQuantity) > 5
 ORDER BY rs.storefrontId, ItemsPurchased DESC;
+
+/*
+ Rental units with highest rental frequency
+
+ BEFORE OPTIMIZATION
+ */
+EXPLAIN QUERY PLAN
+SELECT
+    ru.unitId,
+    ru.name,
+    ru.conditionStatus,
+    ru.modelId,
+    ru.storefrontId,
+    COUNT(cu.unitId) AS rental_frequency
+FROM RentalUnit ru
+JOIN ContractUnit cu ON cu.unitId = ru.unitId
+GROUP BY
+    ru.unitId
+ORDER BY rental_frequency DESC
+LIMIT 10;
+
+/*
+ SCAN ru
+ SEARCH cu USING COVERING INDEX idx_contractunit_unit (unitId=?)
+ USE TEMP B-TREE FOR ORDER BY
+
+ AFTER OPTIMIZATION
+ */
+EXPLAIN QUERY PLAN
+WITH frequency AS (
+    SELECT unitId, COUNT(unitId) AS rental_frequency
+    FROM ContractUnit
+    GROUP BY unitId
+)
+SELECT
+    ru.unitId,
+    ru.name,
+    ru.conditionStatus,
+    ru.modelId,
+    ru.storefrontId,
+    f.rental_frequency
+FROM RentalUnit ru
+JOIN frequency f ON f.unitId = ru.unitId
+ORDER BY f.rental_frequency DESC
+LIMIT 10;
