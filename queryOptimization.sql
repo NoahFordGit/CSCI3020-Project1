@@ -182,13 +182,12 @@ Instructors ranked by total enrollments
  */
 
 EXPLAIN QUERY PLAN
-SELECT
-    e.firstName,
-    e.lastName,
-    COUNT(se.customerId) AS Enrollment
+SELECT e.firstName,
+       e.lastName,
+       COUNT(se.customerId) AS Enrollment
 FROM Employee e
-JOIN SessionInstructor si ON e.employeeId = si.instructorId
-JOIN SessionEnroll se ON se.sessionId = si.sessionId
+       JOIN SessionInstructor si ON e.employeeId = si.instructorId
+       JOIN SessionEnroll se ON se.sessionId = si.sessionId
 GROUP BY si.instructorId
 HAVING COUNT(se.customerId) > 0
 ORDER BY Enrollment DESC;
@@ -300,7 +299,7 @@ LIMIT 10;
     USE TEMP B-TREE FOR GROUP BY
     USE TEMP B-TREE FOR ORDER BY
 
-BY USING COMP INDEX idx_coursesession_sessioncourse AND REWORKING SUBQUERY, SCANS ARE REDUCED AND SEARCHES ARE FASTER
+BY REWORKING SUBQUERY, SCANS ARE REDUCED AND SEARCHES ARE FASTER
 
  */
 

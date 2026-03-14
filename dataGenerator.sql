@@ -222,25 +222,45 @@ x,
 FROM counter;
 
 ------------------------------------------------
--- TRAINING COURSES (2)
+-- TRAINING COURSES (20)
 ------------------------------------------------
 INSERT OR IGNORE INTO TrainingCourse(courseId, courseName, description) VALUES
 (1,'Safety','desc'),
-(2,'Maintenance','desc');
+(2,'Maintenance','desc'),
+(3,'Forklift Operation','desc'),
+(4,'Electrical Safety','desc'),
+(5,'HVAC Basics','desc'),
+(6,'Customer Service','desc'),
+(7,'Leadership 101','desc'),
+(8,'Time Management','desc'),
+(9,'Conflict Resolution','desc'),
+(10,'Team Building','desc'),
+(11,'Inventory Control','desc'),
+(12,'Quality Assurance','desc'),
+(13,'OSHA Compliance','desc'),
+(14,'Basic First Aid','desc'),
+(15,'Emergency Response','desc'),
+(16,'Workplace Communication','desc'),
+(17,'Intro to Logistics','desc'),
+(18,'Basic Carpentry','desc'),
+(19,'Workplace Ergonomics','desc'),
+(20,'Intro to Welding','desc');
+
+
 
 ------------------------------------------------
--- COURSE SESSIONS (20)
+-- COURSE SESSIONS (40)
 ------------------------------------------------
 WITH RECURSIVE counter(x) AS (
     SELECT 1
     UNION ALL
-    SELECT x+1 FROM counter WHERE x < 20
+    SELECT x+1 FROM counter WHERE x < 40
 )
 INSERT INTO CourseSession(sessionId, capacity, courseId)
 SELECT
 x,
 20,
-(ABS(RANDOM())%2)+1
+((x - 1) / 2) + 1
 FROM counter;
 
 INSERT INTO SessionInstructor(sessionId, instructorId)
@@ -277,7 +297,7 @@ WITH RECURSIVE
   session_ids(sessionId) AS (
     SELECT 1
     UNION ALL
-    SELECT sessionId+1 FROM session_ids WHERE sessionId < 20
+    SELECT sessionId+1 FROM session_ids WHERE sessionId < 40
   ),
   customer_ids(customerId) AS (
     SELECT 1
