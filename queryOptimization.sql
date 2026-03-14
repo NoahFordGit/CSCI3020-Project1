@@ -349,3 +349,143 @@ FROM RentalUnit ru
 JOIN frequency f ON f.unitId = ru.unitId
 ORDER BY f.rental_frequency DESC
 LIMIT 10;
+
+/*
+Employees who have brought more than $10,000 in total sales revenue
+
+ BEFORE OPTIMIZATION
+ */
+
+EXPLAIN QUERY PLAN
+SELECT
+    e.firstName,
+    e.lastName,
+    SUM(rs.subtotalAmount) AS totalRevenueBrought
+FROM Employee e
+JOIN RetailSale rs ON e.employeeId = rs.employeeId
+GROUP BY e.employeeId, e.firstName, e.lastName
+HAVING SUM(rs.subtotalAmount) > 10000;
+
+/*
+ PLAN RETURNS:
+        SCAN e
+        SEARCH rs USING INDEX idx_retailsale_employee (employeeId=?)
+
+  AFTER OPTIMIZATION
+*/
+
+DROP INDEX IF EXISTS idx_retailsale_employee_cover;
+CREATE INDEX idx_retailsale_employee_cover ON RetailSale(employeeId, subtotalAmount);
+
+EXPLAIN QUERY PLAN
+SELECT
+    e.firstName,
+    e.lastName,
+    SUM(rs.subtotalAmount) AS totalRevenueBrought
+FROM Employee e
+JOIN RetailSale rs ON e.employeeId = rs.employeeId
+GROUP BY e.employeeId, e.firstName, e.lastName
+HAVING SUM(rs.subtotalAmount) > 10000;
+
+/*
+PLAN RETURNS:
+       SCAN e
+       SEARCH rs USING COVERING INDEX idx_retailsale_employee_cover (employeeId=?)
+
+By storing a copy of the subtotal directly alongside the employeeId inside the covering index, the query can efficiently sum the revenue and evaluate the having clause entirely in memory.  
+*/
+
+/*
+ Commonly purchased product pairs
+
+ BEFORE OPTIMIZATION
+*/
+
+EXPLAIN QUERY PLAN
+SELECT
+    rp1.name AS Prodoct1,
+    rp2.name AS Product2,
+    COUNT(*) AS pairCount
+FROM ProductSale ps1
+JOIN ProductSale ps2 ON ps1.saleId = ps2.saleId
+    AND ps1. productSKU < ps2.productSKU
+JOIN RetailProduct rp1 ON ps1.productSKU = rp1.productSKU
+JOIN RetailProduct rp2 ON ps2.productSKU = rp2.productSKU
+GROUP BY rp1.name, rp2.name
+ORDER BY pairCount DESC
+LIMIT 25;
+
+/*
+ PLAN RETURNS:
+        SCAN rp1
+        SEARCH ps1 USING INDEX idx_productsale_product (productSKU=?)
+        SEARCH ps2 USING COVERING INDEX sqlite_autoindex_ProductSale_1 (saleId=? AND productSKU>?)
+        SEARCH rp2 USING INTEGER PRIMARY KEY (rowid=?)
+        USE TEMP B-TREE FOR GROUP BY
+        USE TEMP B-TREE FOR ORDER BY
+
+  AFTER OPTIMIZATION
+ */
+DROP INDEX IF EXISTS idx_reverse_productsale_covering;
+CREATE INDEX idx_reverse_productsale_covering ON ProductSale(productSKU, saleId);
+
+EXPLAIN QUERY PLAN
+WITH TopPairs AS (
+    SELECT
+         ps1.productSKU AS sku1,
+         ps2.productSKU AS sku2,
+         COUNT(*) AS pairCount
+    FROM ProductSale ps1
+           JOIN ProductSale ps2 ON ps1.saleId = ps2.saleId
+    AND ps1.productSKU < ps2.productSKU
+    GROUP BY ps1.productSKU, ps2.productSKU
+    ORDER BY pairCount DESC
+    LIMIT 25
+)
+SELECT
+    rp1.name AS Product1,
+    rp2.name AS Product2,
+    tp.pairCount
+FROM TopPairs tp
+JOIN RetailProduct rp1 ON tp.sku1 = rp1.productSKU
+JOIN RetailProduct rp2 ON tp.sku2 = rp2.productSKU
+ORDER BY tp.pairCount DESC;
+
+SELECT COUNT(*)
+FROM (
+WITH TopPairs AS (
+    SELECT
+         ps1.productSKU AS sku1,
+         ps2.productSKU AS sku2,
+         COUNT(*) AS pairCount
+    FROM ProductSale ps1
+           JOIN ProductSale ps2 ON ps1.saleId = ps2.saleId
+    AND ps1.productSKU < ps2.productSKU
+    GROUP BY ps1.productSKU, ps2.productSKU
+    ORDER BY pairCount DESC
+    LIMIT 25
+)
+SELECT
+    rp1.name AS Product1,
+    rp2.name AS Product2,
+    tp.pairCount
+FROM TopPairs tp
+JOIN RetailProduct rp1 ON tp.sku1 = rp1.productSKU
+JOIN RetailProduct rp2 ON tp.sku2 = rp2.productSKU
+ORDER BY tp.pairCount DESC
+);
+
+/*
+PLAN RETURNS:
+       CO-ROUTINE TopPairs
+       SCAN ps1 USING COVERING INDEX idx_reverse_productsale_covering
+       SEARCH ps2 USING COVERING INDEX sqlite_autoindex_ProductSale_1 (saleId=? AND productSKU>?)
+       USE TEMP B-TREE FOR GROUP BY
+       USE TEMP B-TREE FOR ORDER BY
+       SCAN tp
+       SEARCH rp1 USING INTEGER PRIMARY KEY (rowid=?)
+       SEARCH rp2 USING INTEGER PRIMARY KEY (rowid=?)
+
+With a CTE late row lookup. This will isolate the self-join inside the CTE, group them by only integer SKU, count them, sort them, and apply the limit clause. 
+which saves the database from processing names for thousands of those unpopular and only sold together once pairs.  
+*/
