@@ -26,7 +26,7 @@ AND NOT EXISTS (
          SEARCH cm USING INDEX sqlite_autoindex_CustomerMembership_1 (customerId=?)
 
  AFTER OPTIMIZATION
- */
+*/
 CREATE INDEX idx_customermembership_isactive_customerid ON CustomerMembership(isActive, customerId);
 CREATE INDEX idx_retailsale_customer_date ON RetailSale(customerId, saleDate);
 
@@ -52,21 +52,21 @@ AND NOT EXISTS (
          SEARCH rs USING COVERING INDEX idx_retailsale_customer_date (customerId=? AND saleDate>?)
 
  USES NEW INDEX idx_customermembership_isactive_customerid AND idx_retailsale_customer_date TO SEARCH MORE EFFICIENTLY
- */
+*/
 
- /*
+/*
  ** NEXT QUERY ** (please use this format for all our queries)
 
  BEFORE OPTIMIZATION
- */
+*/
 
 
 
- /*
+/*
 Active rentals by store with expected return date
 
  BEFORE OPTIMIZATION
- */
+*/
 EXPLAIN QUERY PLAN
 SELECT
     r.name AS unitName,
@@ -111,7 +111,7 @@ ORDER BY rc.storeId;
 
 USING COMPOSITE INDEX, idx_rentalcontract_isactive_storeid, IT IS MORE EFFECTIVE VIA NO TEMP DATA
 
- */
+*/
 
 
 /*
@@ -141,7 +141,7 @@ LIMIT 10;
       SEARCH rs USING INDEX idx_retailsale_customer_date (customerId=? AND saleDate>?)
       USE TEMP B-TREE FOR ORDER BY
  AFTER OPTIMIZATION
- */
+*/
 
 DROP INDEX IF EXISTS idx_retailsale_covering_opt;
 CREATE INDEX idx_retailsale_covering_opt ON RetailSale(saleDate, customerId, subtotalAmount, taxAmount);
@@ -171,15 +171,15 @@ LIMIT 10;
 
 USING COMPOSITE INDEX, idx_retailsale_covering_opt, it is more effective as it eliminates a full scan on customer table
 
- */
+*/
 
 
 
- /*
+/*
 Instructors ranked by total enrollments
 
  BEFORE OPTIMIZATION
- */
+*/
 
 EXPLAIN QUERY PLAN
 SELECT e.firstName,
@@ -202,7 +202,7 @@ PLAN RETURNS:
 
 
  AFTER OPTIMIZATION
- */
+*/
 
 DROP INDEX IF EXISTS idx_sessionenroll_session;
 CREATE INDEX idx_sessionenroll_session ON SessionEnroll(sessionId);
@@ -229,14 +229,13 @@ ORDER BY Enrollment DESC;
 
 USING INDEX idx_sessionenroll_session AND HAVING IN GROUP BY, BLOOM FILTER IS REMOVED AND OVERALL MORE EFFECTIVE
 
- */
+*/
 
-
-  /*
+/*
 Top 10 courses by enrollment numbers
 
  BEFORE OPTIMIZATION
- */
+*/
 
 EXPLAIN QUERY PLAN
 SELECT
@@ -268,7 +267,7 @@ PLAN RETURNS:
 
 
  AFTER OPTIMIZATION
- */
+*/
 
 
 EXPLAIN QUERY PLAN
@@ -301,7 +300,7 @@ LIMIT 10;
 
 BY REWORKING SUBQUERY, SCANS ARE REDUCED AND SEARCHES ARE FASTER
 
- */
+*/
 
 
 
@@ -309,7 +308,7 @@ BY REWORKING SUBQUERY, SCANS ARE REDUCED AND SEARCHES ARE FASTER
  Rental units with highest rental frequency
 
  BEFORE OPTIMIZATION
- */
+*/
 EXPLAIN QUERY PLAN
 SELECT
     ru.unitId,
@@ -331,7 +330,7 @@ LIMIT 10;
  USE TEMP B-TREE FOR ORDER BY
 
  AFTER OPTIMIZATION
- */
+*/
 EXPLAIN QUERY PLAN
 WITH frequency AS (
     SELECT unitId, COUNT(unitId) AS rental_frequency
@@ -354,7 +353,7 @@ LIMIT 10;
 Employees who have brought more than $10,000 in total sales revenue
 
  BEFORE OPTIMIZATION
- */
+*/
 
 EXPLAIN QUERY PLAN
 SELECT
@@ -425,7 +424,7 @@ LIMIT 25;
         USE TEMP B-TREE FOR ORDER BY
 
   AFTER OPTIMIZATION
- */
+*/
 DROP INDEX IF EXISTS idx_reverse_productsale_covering;
 CREATE INDEX idx_reverse_productsale_covering ON ProductSale(productSKU, saleId);
 
