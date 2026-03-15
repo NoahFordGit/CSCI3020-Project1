@@ -488,3 +488,62 @@ PLAN RETURNS:
 With a CTE late row lookup. This will isolate the self-join inside the CTE, group them by only integer SKU, count them, sort them, and apply the limit clause. 
 which saves the database from processing names for thousands of those unpopular and only sold together once pairs.  
 */
+
+/*
+Sales by store by week with total revenue
+
+BEFORE OPTIMIZATION
+*/
+
+EXPLAIN QUERY PLAN
+SELECT
+    s.storefrontId,
+    s.storeAddress,
+    strftime('%Y-%W', rs.saleDate) AS saleWeek,
+    SUM(rs.subtotalAmount + rs.taxAmount) AS totalRevenue
+FROM Storefront s
+JOIN RetailSale rs ON s.storefrontId = rs.storefrontId
+GROUP BY s.storefrontId, s.storeAddress, saleWeek;
+
+/*
+ PLAN RETURNS:
+        SCAN s USING COVERING INDEX sqlite_autoindex_Storefront_1
+        SEARCH rs USING INDEX idx_retailsale_store (storefrontId=?)
+        USE TEMP B-TREE FOR GROUP BY
+
+AFTER OPTIMIZATION
+*/
+
+DROP INDEX IF EXISTS idx_covering_retailsale_store;
+CREATE INDEX idx_covering_retailsale_store ON RetailSale(storefrontId, saleDate, subtotalAmount, taxAmount);
+
+EXPLAIN QUERY PLAN
+WITH WeeklyStoreSales AS (
+    SELECT
+        storefrontId,
+        strftime('%Y-%W', saleDate) AS saleWeek,
+        SUM(subtotalAmount + taxAmount) AS totalRevenue
+    FROM RetailSale
+    GROUP BY storefrontId, saleWeek
+
+)
+SELECT
+    s.storefrontId,
+    s.storeAddress,
+    wss.saleWeek,
+    wss.totalRevenue
+FROM WeeklyStoreSales wss
+JOIN Storefront s ON wss.storefrontId = s.storefrontId;
+
+/*
+ PLAN RETURNS:
+        CO-ROUTINE WeeklyStoreSales
+        SCAN RetailSale USING COVERING INDEX idx_covering_retailsale_store
+        USE TEMP B-TREE FOR GROUP BY
+        SCAN s USING COVERING INDEX sqlite_autoindex_Storefront_1
+        BLOOM FILTER ON wss (storefrontId=?)
+        SEARCH wss USING AUTOMATIC COVERING INDEX (storefrontId=?)
+
+    Using this covering index to get the dates and money amounts without touching the main table. Then,
+    having the CTE perform all the grouping and summing before it joins the storefront table to get the addresses.
+*/
